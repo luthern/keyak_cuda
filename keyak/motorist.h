@@ -34,6 +34,11 @@ typedef struct _Motorist
 void motorist_init(Motorist * m, uint32_t W,
                     uint32_t c, uint32_t t);
 
+uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
+                    Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag);
+
+void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
+                    Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag);
 
 
 #endif 

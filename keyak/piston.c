@@ -10,7 +10,7 @@ void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
     {
         while(len--)
         {
-            *b->buf++ = *data++;
+            buffer_put(b, *data++);
         }
     }
     else
@@ -37,14 +37,14 @@ void piston_spark(Piston * p, uint8_t eom, uint32_t offset)
 {
     if (eom)
     {
-        p->state[p->EOM] ^= ( l == 0 ) ? 0xff : offset;
+        p->state[p->EOM] ^= ( offset == 0 ) ? 0xff : offset;
     }
     else
     {
-        p->state[self->EOM] ^= 0;
+        p->state[p->EOM] ^= 0;
     }
     // TODO add permutation call here
-    // py: self.state = self.f.apply(self.state)
+    // py-ref: self.state = self.f.apply(self.state)
 }
 
 void piston_inject(Piston * p, Buffer * x, uint8_t crypting)

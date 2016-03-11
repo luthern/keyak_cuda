@@ -18,7 +18,6 @@ typedef struct _Keyak
     Buffer T;
     Buffer SUV;
     Motorist motorist;
-
 } Keyak;
 
 

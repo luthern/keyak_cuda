@@ -38,11 +38,11 @@ void engine_inject(Engine * e, Buffer * A)
     uint8_t i;
     for(i=0; i < KEYAK_NUM_PISTONS; i++)
     {
-        piston_inject(engine->pistons[i],cryptingFlag);
+        piston_inject(e->pistons[i],cryptingFlag);
     }
-    if (engine->phase == EngineCrypted || buffer_has_more(A))
+    if (e->phase == EngineCrypted || buffer_has_more(A))
     {
-        engine_spark(e, offsets);
+        engine_spark(e,0, offsets);
         e->phase = EngineFresh;
     }
     else
@@ -66,7 +66,7 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
         uint8_t b = buffer_get(X); 
         for (i=0; i< KEYAK_NUM_PISTONS; i++)
         {
-            buffer_put(Xt[i],b);
+            buffer_put(&Xt[i],b);
         }
     }
 
@@ -74,13 +74,13 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
     {
         for (i=0; i< KEYAK_NUM_PISTONS; i++)
         {
-            buffer_put(Xt[i],KEYAK_NUM_PISTONS);
-            buffer_put(Xt[i],i);
+            buffer_put(&Xt[i],KEYAK_NUM_PISTONS);
+            buffer_put(&Xt[i],i);
         }
     }
     for (i=0; i< KEYAK_NUM_PISTONS; i++)
     {
-        buffer_seek(Xt[i],0);
+        buffer_seek(&Xt[i],0);
     }
 
     while(buffer_has_more(Xt))

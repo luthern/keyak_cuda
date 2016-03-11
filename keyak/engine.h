@@ -21,5 +21,6 @@ typedef struct _Engine
 
 
 void engine_init(Engine * e, Piston * pistons);
+void engine_spark(Engine * e, uint8_t eom, uint32_t * offsets);
 
 #endif
