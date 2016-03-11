@@ -2,6 +2,7 @@
 #define  _PISTON_H_
 
 #include <stdint.h>
+#include <string.h>
 #include "defs.h"
 
 typedef struct _Buffer
@@ -12,8 +13,11 @@ typedef struct _Buffer
     uint8_t buf[KEYAK_BUFFER_SIZE];
 } Buffer;
 
-#define buffer_put(b,d) ( (b).buf[(b).length++] = (d) )
-#define buffer_get(b) ( (b).buf[(b).offset++] )
+#define buffer_put(b,d)     ( (b)->buf[(b)->length++] = (d) )
+#define buffer_get(b)       ( (b)->buf[(b)->offset++] )
+#define buffer_has_more(b)  ( (b)->offset < (b)->length)
+#define buffer_seek(b,d)    ( (b)->offset = (d) )
+#define buffer_same(b1,b2)  ( memcmp((b1)->buf,(b2)->buf, KEYAK_BUFFER_SIZE) == 0 )
 
 typedef struct _Piston
 {
@@ -29,6 +33,7 @@ typedef struct _Piston
 
 } Piston;
 
+void buffer_init(Buffer * b, uint8_t * data, uint32_t len);
 void piston_init(Piston * p, uint32_t Rs, uint32_t Ra);
 
 #endif

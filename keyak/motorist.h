@@ -22,6 +22,8 @@ typedef struct _Motorist
     uint32_t Rs;
     uint32_t Ra;
 
+    uint32_t cprime;
+
     MotoristState phase;
 
     Engine engine;

@@ -14,8 +14,8 @@ void keyak_init(Keyak* k, uint32_t b, uint32_t nr, uint32_t c, uint32_t t)
 
     motorist_init(&k->motorist, k->W, c, t);
     
-    buffer_init(&k->T);
-    buffer_init(&k->SUV);
+    buffer_init(&k->T,NULL,0);
+    buffer_init(&k->SUV,NULL,0);
 }
 
 
@@ -45,6 +45,21 @@ void keyak_add_nonce(Keyak * k, uint8_t * nonce, uint32_t len)
     {
         buffer_put(k->SUV, nonce[i]);
     }
+}
+
+void keyak_encrypt(Keyak * k, uint8_t outcipher, uint8_t outtag,  
+                    uint8_t * data, uint32_t datalen, 
+                    uint8_t * metadata, uint32_t metalen)
+{
+    Buffer I,O,A;
+    buffer_init(&I,data, datalen);
+    buffer_init(&O,NULL, 0);
+    buffer_init(&A,metadata, metalen);
+
+    motorist_wrap(&k->motorist,&I,&O,&A, k->T, 0, 0);
+
+    memmove(outcipher, O.buf, O.length);
+    memmove(outtag, k->T.buf, k->T.length);
 }
 
 
