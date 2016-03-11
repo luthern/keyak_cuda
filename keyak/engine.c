@@ -1,6 +1,7 @@
 #include <string.h>
 #include <assert.h>
 #include "engine.h"
+#include "misc.h"
 #include "piston.h"
 
 void engine_init(Engine * e, Piston * pistons)
@@ -10,19 +11,31 @@ void engine_init(Engine * e, Piston * pistons)
     e->phase = EngineFresh;
 }
 
-void engine_spark(Engine * e, uint8_t eom, uint32_t * offsets)
+void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
     uint8_t i;
     for (i=0; i < KEYAK_NUM_PISTONS; i++)
     {
-        piston_spark(e->pistons[i],eom, offsets[i]);
+        piston_spark(&e->pistons[i],eom, offsets[i]);
     }
-    memmove(e->Et, offsets, sizeof(uint32_t)*KEYAK_NUM_PISTONS);
+    memmove(e->Et, offsets, sizeof(uint8_t)*KEYAK_NUM_PISTONS);
+}
+
+void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
+{
+    assert(e->phase == EngineEndOfMessage);
+    engine_spark(e, 1, L);
+    uint8_t i;
+    for (i = 0; i < KEYAK_NUM_PISTONS; i++)
+    {
+        piston_get_tag(&e->pistons[i], T, L[i]);
+    }
+    e->phase = EngineFresh;
 }
 
 void engine_inject(Engine * e, Buffer * A)
 {    
-    uint32_t offsets[KEYAK_NUM_PISTONS];
+    uint8_t offsets[KEYAK_NUM_PISTONS];
     memset(offsets, 0, sizeof(offsets));
 
     assert(
@@ -38,7 +51,7 @@ void engine_inject(Engine * e, Buffer * A)
     uint8_t i;
     for(i=0; i < KEYAK_NUM_PISTONS; i++)
     {
-        piston_inject(e->pistons[i],cryptingFlag);
+        piston_inject(&e->pistons[i],A,cryptingFlag);
     }
     if (e->phase == EngineCrypted || buffer_has_more(A))
     {
@@ -91,12 +104,23 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
         }
         if (buffer_has_more(Xt))
         {
-            uint32_t offsets[KEYAK_NUM_PISTONS];
+            uint8_t offsets[KEYAK_NUM_PISTONS];
             memset(offsets, 0, sizeof(offsets));
             engine_spark(e, 0, offsets);
         }
     }
 
     e->phase = EngineEndOfMessage;
+}
 
+
+void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
+{
+    assert(e->phase == EngineFresh);
+    uint8_t i;
+    for (i=0; i < KEYAK_NUM_PISTONS; i++)
+    {
+        piston_crypt(&e->pistons[i], I, O, e->Et[i], unwrapFlag);
+    }
+    e->phase = buffer_has_more(I) ? EngineCrypted : EngineEndOfCrypt;
 }

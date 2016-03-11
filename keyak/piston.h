@@ -18,6 +18,8 @@ typedef struct _Buffer
 #define buffer_has_more(b)  ( (b)->offset < (b)->length)
 #define buffer_seek(b,d)    ( (b)->offset = (d) )
 #define buffer_same(b1,b2)  ( memcmp((b1)->buf,(b2)->buf, KEYAK_BUFFER_SIZE) == 0 )
+#define buffer_clone(b1,b2) ( buffer_init((b1), (b2)->buf, (b2)->length) )
+
 
 typedef struct _Piston
 {
@@ -34,6 +36,12 @@ typedef struct _Piston
 } Piston;
 
 void buffer_init(Buffer * b, uint8_t * data, uint32_t len);
+
 void piston_init(Piston * p, uint32_t Rs, uint32_t Ra);
+void piston_get_tag(Piston * p, Buffer * T, uint32_t l);
+void piston_inject(Piston * p, Buffer * x, uint8_t crypting);
+void piston_spark(Piston * p, uint8_t eom, uint8_t offset);
+void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
+        uint8_t unwrapFlag);
 
 #endif
