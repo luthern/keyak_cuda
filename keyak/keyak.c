@@ -1,10 +1,11 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "keyak.h"
 #include "motorist.h"
 #include "misc.h"
-#include <assert.h>
 
 
 void keyak_init(Keyak* k, uint32_t b, uint32_t nr, uint32_t c, uint32_t t)
@@ -60,7 +61,27 @@ void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     motorist_wrap(&k->motorist,&k->I,&k->O,&k->A, &k->T, 0, 0);
 }
 
+void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen, 
+                    uint8_t * metadata, uint32_t metalen, 
+                    uint8_t * tag, uint32_t taglen)
+{
+    Buffer tagbuf;
+    motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
+    buffer_init(&k->I,data, datalen);
+    buffer_init(&k->O,NULL, 0);
+    buffer_init(&k->A,metadata, metalen);
 
+    buffer_init(&tagbuf, tag, taglen);
+
+    motorist_wrap(&k->motorist,&k->I,&k->O,&k->A, &tagbuf, 1, 0);
+
+    if (k->motorist.phase == MotoristFailed)
+    {
+        fprintf(stderr,"authentication failed\n");
+        exit(1);
+    }
+
+}
 
 
 

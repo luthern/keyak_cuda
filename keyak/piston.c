@@ -4,6 +4,7 @@
 #include "piston.h"
 #include "defs.h"
 #include "misc.h"
+#include "keccak.h"
 
 
 void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
@@ -42,6 +43,8 @@ void piston_spark(Piston * p, uint8_t eom, uint8_t offset)
     {
         p->state[p->EOM] ^= 0;
     }
+
+    PERMUTE(p->state);
     // TODO add permutation call here
     // py-ref: self.state = self.f.apply(self.state)
 }
