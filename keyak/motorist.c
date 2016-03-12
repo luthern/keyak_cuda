@@ -34,12 +34,12 @@ static void make_knot(Motorist * m)
     Buffer Tprime;
     int i = KEYAK_NUM_PISTONS;
     uint8_t primes[KEYAK_NUM_PISTONS];
+    buffer_init(&Tprime, NULL, 0);
     while(i--)
     {
-        primes[i] = m->cprime;
+        primes[i] = m->cprime/8;
     }
 
-    buffer_init(&Tprime, NULL, 0);
     engine_get_tags(&m->engine, &Tprime, primes);
 
     buffer_seek(&Tprime, 0);
@@ -53,6 +53,7 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
                     uint8_t unwrapFlag)
 {
     Buffer Tprime;
+    buffer_init(&Tprime, NULL, 0);
     uint8_t offsets[KEYAK_NUM_PISTONS];
     memset(offsets, 0, sizeof(offsets));
 
