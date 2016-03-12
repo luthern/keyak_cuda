@@ -10,5 +10,6 @@
 
 void timer_start(const char * msg);
 void timer_end();
+void timer_accum();
 
 #endif

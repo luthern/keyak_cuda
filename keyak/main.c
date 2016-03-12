@@ -20,7 +20,7 @@ int main(int argc, char * argv[])
     Keyak sendr;
     Keyak recvr;
     char * suv, * nonce;
-    char pt[1024];
+    char pt[5024];
     int ptlen, suvlen, noncelen;
 
     if (argc == 3)
@@ -43,8 +43,8 @@ int main(int argc, char * argv[])
 
     ptlen = read(STDIN_FILENO, pt, sizeof(pt));
 
-    printf("plain text: \n");
-    dump_hex(pt, ptlen);
+    //printf("plain text: \n");
+    //dump_hex(pt, ptlen);
 
     char metadata[] = "movie quote.";
 
@@ -57,17 +57,28 @@ int main(int argc, char * argv[])
     keyak_add_nonce(&sendr, nonce, noncelen);
     keyak_add_nonce(&recvr, nonce, noncelen);
 
-    keyak_encrypt(&sendr, pt, ptlen, metadata, sizeof(metadata));
+    printf("encrypting %d bytes\n", ptlen);
+    int i;
+    for (i=0; i< 100; i++)
+    {
+        keyak_init(&sendr,1600,12,256,128);
+        keyak_init(&recvr,1600,12,256,128);
 
-    printf("cipher text: \n");
-    dump_hex(sendr.O.buf, sendr.O.length);
 
-    keyak_decrypt(&recvr, sendr.O.buf, sendr.O.length, 
+        keyak_encrypt(&sendr, pt, ptlen, metadata, sizeof(metadata));
+
+
+        //printf("cipher text: \n");
+        //dump_hex(sendr.O.buf, sendr.O.length);
+
+        keyak_decrypt(&recvr, sendr.O.buf, sendr.O.length, 
                 metadata, sizeof(metadata),
                 sendr.T.buf, sendr.T.length);
+    }
+    timer_end();
 
-    printf("plain text: \n");
-    dump_hex(recvr.O.buf, recvr.O.length);
+    //printf("plain text: \n");
+    //dump_hex(recvr.O.buf, recvr.O.length);
 
 
     printf("hello keyak\n");

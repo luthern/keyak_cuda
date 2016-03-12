@@ -6,6 +6,6 @@
 #define KEYAK_STATE_SIZE        (( KEYAK_F_WIDTH + 7 )/8)
 
 
-#define KEYAK_BUFFER_SIZE       1000
+#define KEYAK_BUFFER_SIZE       5000
 
 #endif
