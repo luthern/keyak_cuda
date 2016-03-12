@@ -1,40 +1,35 @@
 
 #include "misc.h"
+#include <string.h>
 
-#include <time.h>
 
-static const char * _msg;
-struct timespec tstart={0,0}, tend={0,0};
-
-static int acum = 0;
-static double total = 0;
-
-void timer_start(const char * msg)
+void timer_start(struct timer * t, const char * msg)
 {
-    _msg = msg;
-    clock_gettime(CLOCK_MONOTONIC, &tstart);
+    if (msg[0] != t->msg[0]) memmove(t->msg, msg, strlen(msg)+1);
+    clock_gettime(CLOCK_MONOTONIC, &t->tstart);
 }
 
 
-void timer_accum()
+void timer_accum(struct timer * t)
 {
-    acum = 1;
-    clock_gettime(CLOCK_MONOTONIC, &tend);
-    total += (((double)tend.tv_sec * 1.0e-9 + tend.tv_nsec) -
-            ((double)tstart.tv_sec * 1.0e-9 + tstart.tv_nsec));
+    t->accum = 1;
+    clock_gettime(CLOCK_MONOTONIC, &t->tend);
+    t->total += (((double)t->tend.tv_sec + 1.0e-9 * (double)t->tend.tv_nsec) -
+            ((double)t->tstart.tv_sec + 1.0e-9 * (double)t->tstart.tv_nsec));
 
 }
 
-void timer_end()
+void timer_end(struct timer * t)
 {
-    if (acum)
+    if (t->accum)
     {
     }
     else
     {
-        total = (((double)tend.tv_sec * 1.0e-9 + tend.tv_nsec) -
-                ((double)tstart.tv_sec * 1.0e-9 + tstart.tv_nsec));
+        clock_gettime(CLOCK_MONOTONIC, &t->tend);
+        t->total = (((double)t->tend.tv_sec + 1.0e-9 * (double)t->tend.tv_nsec) -
+                ((double)t->tstart.tv_sec + 1.0e-9 * (double)t->tstart.tv_nsec));
     }
-    acum = 0;
-    printf("%s time: %.1f ns\n", _msg, total);
+    t->accum = 0;
+    printf("%s time: %.4f s\n", t->msg, t->total);
 }

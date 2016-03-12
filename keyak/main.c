@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "keyak.h"
+#include "misc.h"
 
 static void dump_hex(uint8_t * buf, int len)
 {
@@ -58,27 +59,24 @@ int main(int argc, char * argv[])
     keyak_add_nonce(&recvr, nonce, noncelen);
 
     printf("encrypting %d bytes\n", ptlen);
+    struct timer t;
+    memset(&t, 0, sizeof(struct timer));
     int i;
-    for (i=0; i< 100; i++)
+    timer_start(&t, "10000 sessions");
+    for (i=0; i< 10000; i++)
     {
         keyak_init(&sendr,1600,12,256,128);
         keyak_init(&recvr,1600,12,256,128);
 
-
         keyak_encrypt(&sendr, pt, ptlen, metadata, sizeof(metadata));
-
-
-        //printf("cipher text: \n");
-        //dump_hex(sendr.O.buf, sendr.O.length);
 
         keyak_decrypt(&recvr, sendr.O.buf, sendr.O.length, 
                 metadata, sizeof(metadata),
                 sendr.T.buf, sendr.T.length);
     }
-    timer_end();
+    timer_end(&t);
 
-    //printf("plain text: \n");
-    //dump_hex(recvr.O.buf, recvr.O.length);
+    motorist_timers_end();
 
 
     printf("hello keyak\n");

@@ -12,9 +12,7 @@ void keyak_init(Keyak* k, uint32_t b, uint32_t nr, uint32_t c, uint32_t t)
 {
     k->W = MAX(b/25,8);
     k->c = c;
-
     motorist_init(&k->motorist, k->W, c, t);
-    
     buffer_init(&k->T,NULL,0);
     buffer_init(&k->SUV,NULL,0);
 }
@@ -70,9 +68,7 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     buffer_init(&k->I,data, datalen);
     buffer_init(&k->O,NULL, 0);
     buffer_init(&k->A,metadata, metalen);
-
     buffer_init(&tagbuf, tag, taglen);
-
     motorist_wrap(&k->motorist,&k->I,&k->O,&k->A, &tagbuf, 1, 0);
 
     if (k->motorist.phase == MotoristFailed)
