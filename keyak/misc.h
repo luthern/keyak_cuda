@@ -8,4 +8,7 @@
 
 #define debug()         (printf("%s: %d\n", __FILE__, __LINE__))
 
+void timer_start(const char * msg);
+void timer_end();
+
 #endif
