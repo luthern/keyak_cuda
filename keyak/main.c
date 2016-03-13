@@ -6,6 +6,7 @@
 
 #include "keyak.h"
 #include "misc.h"
+#include "add.h"
 
 static void dump_hex(uint8_t * buf, int len)
 {
@@ -23,6 +24,8 @@ int main(int argc, char * argv[])
     unsigned char * suv, * nonce;
     char pt[5024];
     int ptlen, suvlen, noncelen;
+
+    do_sum_adds();
 
     if (argc == 3)
     {

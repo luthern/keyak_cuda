@@ -4,9 +4,9 @@ obj = $(src:.c=.o)
 name=keyak
 
 CFLAGS= -O3 -Werror
-LDFLAGS= -lcudart -lcuda
+LDFLAGS= -lcudart -lcudart
 
-CC=gcc
+CC=g++
 CCG=nvcc
 
 $(name): $(obj) add.o
