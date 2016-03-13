@@ -39,8 +39,8 @@ int main(int argc, char * argv[])
         fprintf(stderr, "usage: %s <key-ascii> [<nonce-ascii>]\n", argv[0]);
         exit(1);
     }
-    suvlen = strlen(suv);
-    noncelen = strlen(nonce);
+    suvlen = strlen((char*)suv);
+    noncelen = strlen((char*)nonce);
 
     ptlen = read(STDIN_FILENO, pt, sizeof(pt));
 
@@ -75,7 +75,7 @@ int main(int argc, char * argv[])
 
         timer_accum(&tinit);
 
-        keyak_encrypt(&sendr, pt, ptlen, metadata, sizeof(metadata));
+        keyak_encrypt(&sendr, (uint8_t*)pt, ptlen, (uint8_t*)metadata, sizeof(metadata));
 
         keyak_decrypt(&recvr, sendr.O.buf, sendr.O.length, 
                 metadata, sizeof(metadata),

@@ -4,9 +4,16 @@ obj = $(src:.c=.o)
 name=keyak
 
 CFLAGS= -O3 -Werror
+LDFLAGS= -lcudart -lcuda
 
-$(name): $(obj)
-	$(CC) -o $@ $^ $(LDFLAGS)
+CC=gcc
+CCG=nvcc
+
+$(name): $(obj) add.o
+	$(CC) -o $@ $^ $(LDFLAGS) 
+
+add.o:
+	$(CCG) add.cu -c -o add.o
 
 clean:
 	rm -f $(obj) $(name)
