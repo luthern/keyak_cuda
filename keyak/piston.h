@@ -44,4 +44,7 @@ void piston_spark(Piston * p, uint8_t eom, uint8_t offset);
 void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
         uint8_t unwrapFlag);
 
+
+void piston_restart(Piston * p);
+
 #endif

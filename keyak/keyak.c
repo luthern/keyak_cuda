@@ -17,6 +17,11 @@ void keyak_init(Keyak* k, uint32_t b, uint32_t nr, uint32_t c, uint32_t t)
     buffer_init(&k->SUV,NULL,0);
 }
 
+void keyak_restart(Keyak * k)
+{
+    motorist_restart(&k->motorist);
+}
+
 
 void keyak_set_suv(Keyak * k, uint8_t * key, uint32_t klen)
 {

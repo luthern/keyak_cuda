@@ -15,8 +15,8 @@ void motorist_init(Motorist * m, uint32_t W,
     m->c = c;
     m->t = t;
 
-    m->Rs = W * ((KEYAK_F_WIDTH - MAX(32, c))/W) / 8;
-    m->Ra = W * ((KEYAK_F_WIDTH - 32)/W) / 8;
+    m->Rs = W * ((KEYAK_F_WIDTH - MAX(32, c))/W) >> 3;
+    m->Ra = W * ((KEYAK_F_WIDTH - 32)/W) >> 3;
 
     m->phase = MotoristReady;
     m->cprime = W*((c+W-1)/W);
@@ -29,6 +29,19 @@ void motorist_init(Motorist * m, uint32_t W,
     engine_init(&m->engine, m->pistons);
 }
 
+void motorist_restart(Motorist * m)
+{
+    uint8_t i;
+    m->phase = MotoristReady;
+
+    for(i=0; i < KEYAK_NUM_PISTONS; i++)
+    {
+        piston_restart(&m->pistons[i]);
+    }
+
+    engine_restart(&m->engine);
+}
+
 static void make_knot(Motorist * m)
 {
     Buffer Tprime;
@@ -37,7 +50,7 @@ static void make_knot(Motorist * m)
     buffer_init(&Tprime, NULL, 0);
     while(i--)
     {
-        primes[i] = m->cprime/8;
+        primes[i] = m->cprime >> 3;
     }
 
     engine_get_tags(&m->engine, &Tprime, primes);
@@ -45,6 +58,11 @@ static void make_knot(Motorist * m)
     buffer_seek(&Tprime, 0);
 
     engine_inject_collective(&m->engine, &Tprime, 0);
+}
+
+void motorist_setup()
+{
+
 }
 
 // 1 success
@@ -63,7 +81,7 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
     }
     else
     {
-        offsets[0] = m->t/8;
+        offsets[0] = m->t >> 3;
         engine_get_tags(&m->engine,&Tprime, offsets);
         if (!unwrapFlag)
         {

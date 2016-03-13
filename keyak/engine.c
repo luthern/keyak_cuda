@@ -11,6 +11,11 @@ void engine_init(Engine * e, Piston * pistons)
     e->phase = EngineFresh;
 }
 
+void engine_restart(Engine * e)
+{
+    e->phase = EngineFresh;
+}
+
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
     uint8_t i;
@@ -33,11 +38,14 @@ void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
     e->phase = EngineFresh;
 }
 
+uint8_t offsets_zero[KEYAK_NUM_PISTONS];
+void engine_precompute()
+{
+    memset(offsets_zero, 0, sizeof(offsets_zero));
+}
+
 void engine_inject(Engine * e, Buffer * A)
 {    
-    uint8_t offsets[KEYAK_NUM_PISTONS];
-    memset(offsets, 0, sizeof(offsets));
-
     assert(
             e->phase == EngineCrypted ||
             e->phase == EngineEndOfCrypt ||
@@ -55,7 +63,7 @@ void engine_inject(Engine * e, Buffer * A)
     }
     if (e->phase == EngineCrypted || buffer_has_more(A))
     {
-        engine_spark(e,0, offsets);
+        engine_spark(e,0, offsets_zero);
         e->phase = EngineFresh;
     }
     else

@@ -33,6 +33,11 @@ void piston_init(Piston * p, uint32_t Rs, uint32_t Ra)
     memset(p->state, 0, KEYAK_STATE_SIZE);
 }
 
+void piston_restart(Piston * p)
+{
+    memset(p->state, 0, KEYAK_STATE_SIZE);
+}
+
 void piston_spark(Piston * p, uint8_t eom, uint8_t offset)
 {
     if (eom)

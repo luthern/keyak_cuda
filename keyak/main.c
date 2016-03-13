@@ -20,18 +20,18 @@ int main(int argc, char * argv[])
 {
     Keyak sendr;
     Keyak recvr;
-    char * suv, * nonce;
+    unsigned char * suv, * nonce;
     char pt[5024];
     int ptlen, suvlen, noncelen;
 
     if (argc == 3)
     {
-        suv = argv[1];
-        nonce = argv[2];
+        suv = (unsigned char *) argv[1];
+        nonce = (unsigned char *)argv[2];
     }
     else if (argc == 2)
     {
-        suv = argv[1];
+        suv = (unsigned char *)argv[1];
         nonce = NULL;
     }
     else
@@ -47,8 +47,9 @@ int main(int argc, char * argv[])
     //printf("plain text: \n");
     //dump_hex(pt, ptlen);
 
-    char metadata[] = "movie quote.";
-
+    unsigned char metadata[] = "movie quote.";
+    
+    engine_precompute();
     // lunar keyak
     keyak_init(&sendr,1600,12,256,128);
     keyak_init(&recvr,1600,12,256,128);
@@ -58,15 +59,21 @@ int main(int argc, char * argv[])
     keyak_add_nonce(&sendr, nonce, noncelen);
     keyak_add_nonce(&recvr, nonce, noncelen);
 
+    keyak_init(&sendr,1600,12,256,128);
+    keyak_init(&recvr,1600,12,256,128);
     printf("encrypting %d bytes\n", ptlen);
-    struct timer t;
+    struct timer t, tinit;
     memset(&t, 0, sizeof(struct timer));
     int i;
     timer_start(&t, "10000 sessions");
-    for (i=0; i< 10000; i++)
+    for (i=0; i< 20000; i++)
     {
-        keyak_init(&sendr,1600,12,256,128);
-        keyak_init(&recvr,1600,12,256,128);
+        timer_start(&tinit,"keyak_initx2");
+
+        keyak_restart(&sendr);
+        keyak_restart(&recvr);
+
+        timer_accum(&tinit);
 
         keyak_encrypt(&sendr, pt, ptlen, metadata, sizeof(metadata));
 
@@ -75,9 +82,11 @@ int main(int argc, char * argv[])
                 sendr.T.buf, sendr.T.length);
     }
     timer_end(&t);
+    timer_end(&tinit);
 
     motorist_timers_end();
-
+    dump_hex( sendr.T.buf, sendr.T.length );
+    dump_hex( sendr.O.buf+sendr.O.length - 50,50 );
 
     printf("hello keyak\n");
 

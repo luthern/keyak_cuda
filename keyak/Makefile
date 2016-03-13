@@ -3,8 +3,10 @@ obj = $(src:.c=.o)
 
 name=keyak
 
+CFLAGS= -O3 -Werror
+
 $(name): $(obj)
-	$(CC) -O3 -Wall -Werror -o $@ $^ $(LDFLAGS)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -f $(obj) $(name)
