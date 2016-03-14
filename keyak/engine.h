@@ -21,10 +21,12 @@ typedef struct _Engine
 
 
 void engine_init(Engine * e, Piston * pistons);
+void engine_restart(Engine * e);
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets);
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L);
 void engine_inject(Engine * e, Buffer * A);
 void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag);
 void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag);
+void engine_precompute();
 
 #endif

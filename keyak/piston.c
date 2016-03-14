@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "keccak.h"
 
-
 void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
 {
     memset(b, 0, sizeof(Buffer));
@@ -17,19 +16,15 @@ void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
             buffer_put(b, *data++);
         }
     }
-    // b->size = KEYAK_BUFFER_SIZE;
 }
 
-void piston_init(Piston * p, uint32_t Rs, uint32_t Ra)
+void piston_init(Piston * p)
 {
-    p->Rs = Rs;
-    p->Ra = Ra;
-    
-    p->EOM = Ra;
-    p->CryptEnd = Ra + 1;
-    p->InjectStart = Ra + 2;
-    p->InjectEnd = Ra + 3;
-    
+    memset(p->state, 0, KEYAK_STATE_SIZE);
+}
+
+void piston_restart(Piston * p)
+{
     memset(p->state, 0, KEYAK_STATE_SIZE);
 }
 
@@ -37,11 +32,11 @@ void piston_spark(Piston * p, uint8_t eom, uint8_t offset)
 {
     if (eom)
     {
-        p->state[p->EOM] ^= ( offset == 0 ) ? 0xff : offset;
+        p->state[PISTON_EOM] ^= ( offset == 0 ) ? 0xff : offset;
     }
     else
     {
-        p->state[p->EOM] ^= 0;
+        p->state[PISTON_EOM] ^= 0;
     }
 
     PERMUTE(p->state);
@@ -51,7 +46,7 @@ void piston_spark(Piston * p, uint8_t eom, uint8_t offset)
 
 void piston_get_tag(Piston * p, Buffer * T, uint32_t l)
 {
-    assert(l <= p->Rs);
+    assert(l <= PISTON_RS);
     int i;
     for (i=0; i < l; i++)
     {
@@ -61,25 +56,25 @@ void piston_get_tag(Piston * p, Buffer * T, uint32_t l)
 
 void piston_inject(Piston * p, Buffer * x, uint8_t crypting)
 {
-    uint8_t w = crypting ? p->Rs : 0;
-    p->state[p->InjectStart] ^= w;
+    uint8_t w = crypting ? PISTON_RS : 0;
+    p->state[PISTON_INJECT_START] ^= w;
 
-    while(buffer_has_more(x) && w < p->Ra)
+    while(buffer_has_more(x) && w < PISTON_RA)
     {
         p->state[w++] ^= buffer_get(x); 
     }
-    p->state[p->InjectEnd] ^= w;
+    p->state[PISTON_INJECT_END] ^= w;
 }
 
 void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
         uint8_t unwrapFlag)
 {
-    while(buffer_has_more(I) && w < p->Rs)
+    while(buffer_has_more(I) && w < PISTON_RS)
     {
         uint8_t x = buffer_get(I);
         buffer_put(O, p->state[w] ^ x);
         p->state[w] = unwrapFlag ? x : p->state[w] ^ x;
         w++;
     }
-    p->state[p->CryptEnd] ^= w;
+    p->state[PISTON_CRYPT_END] ^= w;
 }

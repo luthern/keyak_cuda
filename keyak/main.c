@@ -5,11 +5,13 @@
 #include <unistd.h>
 
 #include "keyak.h"
+#include "misc.h"
+#include "add.h"
 
 static void dump_hex(uint8_t * buf, int len)
 {
     while(len--)
-        printf("%x", *buf++);
+        printf("%02hhx", *buf++);
     printf("\n");
 }
 
@@ -19,18 +21,20 @@ int main(int argc, char * argv[])
 {
     Keyak sendr;
     Keyak recvr;
-    char * suv, * nonce;
-    char pt[1024];
+    unsigned char * suv, * nonce;
+    char pt[5024];
     int ptlen, suvlen, noncelen;
+
+    do_sum_adds();
 
     if (argc == 3)
     {
-        suv = argv[1];
-        nonce = argv[2];
+        suv = (unsigned char *) argv[1];
+        nonce = (unsigned char *)argv[2];
     }
     else if (argc == 2)
     {
-        suv = argv[1];
+        suv = (unsigned char *)argv[1];
         nonce = NULL;
     }
     else
@@ -38,37 +42,52 @@ int main(int argc, char * argv[])
         fprintf(stderr, "usage: %s <key-ascii> [<nonce-ascii>]\n", argv[0]);
         exit(1);
     }
-    suvlen = strlen(suv);
-    noncelen = strlen(nonce);
+    suvlen = strlen((char*)suv);
+    noncelen = strlen((char*)nonce);
 
     ptlen = read(STDIN_FILENO, pt, sizeof(pt));
 
-    printf("plain text: \n");
-    dump_hex(pt, ptlen);
+    //printf("plain text: \n");
+    //dump_hex(pt, ptlen);
 
-    char metadata[] = "movie quote.";
-
+    unsigned char metadata[] = "movie quote.";
+    
+    engine_precompute();
     // lunar keyak
-    keyak_init(&sendr,1600,12,256,128);
-    keyak_init(&recvr,1600,12,256,128);
+    keyak_init(&sendr);
+    keyak_init(&recvr);
 
     keyak_set_suv(&sendr, suv, suvlen);
     keyak_set_suv(&recvr, suv, suvlen);
     keyak_add_nonce(&sendr, nonce, noncelen);
     keyak_add_nonce(&recvr, nonce, noncelen);
 
-    keyak_encrypt(&sendr, pt, ptlen, metadata, sizeof(metadata));
+    printf("encrypting %d bytes\n", ptlen);
+    struct timer t, tinit;
+    memset(&t, 0, sizeof(struct timer));
+    int i;
+    timer_start(&t, "10000 sessions");
+    for (i=0; i< 20000; i++)
+    {
+        timer_start(&tinit,"keyak_initx2");
 
-    printf("cipher text: \n");
-    dump_hex(sendr.O.buf, sendr.O.length);
+        keyak_restart(&sendr);
+        keyak_restart(&recvr);
 
-    keyak_decrypt(&recvr, sendr.O.buf, sendr.O.length, 
+        timer_accum(&tinit);
+
+        keyak_encrypt(&sendr, (uint8_t*)pt, ptlen, (uint8_t*)metadata, sizeof(metadata));
+
+        keyak_decrypt(&recvr, sendr.O.buf, sendr.O.length, 
                 metadata, sizeof(metadata),
                 sendr.T.buf, sendr.T.length);
+    }
+    timer_end(&t);
+    timer_end(&tinit);
 
-    printf("plain text: \n");
-    dump_hex(recvr.O.buf, recvr.O.length);
-
+    motorist_timers_end();
+    dump_hex( sendr.T.buf, sendr.T.length );
+    dump_hex( sendr.O.buf + sendr.O.length - 50,50 );
 
     printf("hello keyak\n");
 

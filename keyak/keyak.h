@@ -13,18 +13,15 @@ typedef struct _KeyPack
 
 typedef struct _Keyak
 {
-    uint32_t W;
-    uint32_t c;
     Buffer T;
     Buffer SUV;
     Motorist motorist;
-    
     Buffer I,O,A;
-
 } Keyak;
 
 
-void keyak_init(Keyak* k, uint32_t b, uint32_t nr, uint32_t c, uint32_t t);
+void keyak_init(Keyak* k);
+void keyak_restart(Keyak * k);
 
 void keyak_add_nonce(Keyak * k, uint8_t * nonce, uint32_t len);
 
