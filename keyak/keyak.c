@@ -20,6 +20,8 @@ void keyak_init(Keyak* k, uint32_t b, uint32_t nr, uint32_t c, uint32_t t)
 void keyak_restart(Keyak * k)
 {
     motorist_restart(&k->motorist);
+    k->T.offset = 0;
+    k->SUV.offset = 0;
 }
 
 

@@ -7,7 +7,6 @@
 
 typedef struct _Buffer
 {
-    uint32_t size;
     uint32_t offset;
     uint32_t length;
     uint8_t buf[KEYAK_BUFFER_SIZE];
@@ -37,7 +36,7 @@ typedef struct _Piston
 
 void buffer_init(Buffer * b, uint8_t * data, uint32_t len);
 
-void piston_init(Piston * p, uint32_t Rs, uint32_t Ra);
+void piston_init(Piston * p);
 void piston_get_tag(Piston * p, Buffer * T, uint32_t l);
 void piston_inject(Piston * p, Buffer * x, uint8_t crypting);
 void piston_spark(Piston * p, uint8_t eom, uint8_t offset);

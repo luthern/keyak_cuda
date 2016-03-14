@@ -21,10 +21,9 @@ void motorist_init(Motorist * m, uint32_t W,
     m->phase = MotoristReady;
     m->cprime = W*((c+W-1)/W);
 
-
     for (i = 0; i < KEYAK_NUM_PISTONS; i++)
     {
-        piston_init(&m->pistons[i],m->Rs, m->Ra);
+        piston_init(&m->pistons[i]);
     }
     engine_init(&m->engine, m->pistons);
 }

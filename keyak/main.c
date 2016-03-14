@@ -11,7 +11,7 @@
 static void dump_hex(uint8_t * buf, int len)
 {
     while(len--)
-        printf("%x", *buf++);
+        printf("%02hhx", *buf++);
     printf("\n");
 }
 
@@ -87,7 +87,7 @@ int main(int argc, char * argv[])
 
     motorist_timers_end();
     dump_hex( sendr.T.buf, sendr.T.length );
-    dump_hex( sendr.O.buf+sendr.O.length - 50,50 );
+    dump_hex( sendr.O.buf + sendr.O.length - 50,50 );
 
     printf("hello keyak\n");
 
