@@ -14,25 +14,12 @@ typedef enum
 
 typedef struct _Motorist
 {
-    uint32_t W;
-    uint8_t pi;
-    uint32_t c;
-    uint32_t t;
-
-    uint32_t Rs;
-    uint32_t Ra;
-
-    uint32_t cprime;
-
     MotoristState phase;
-
     Engine engine;
-
     Piston pistons[KEYAK_NUM_PISTONS];
 } Motorist;
 
-void motorist_init(Motorist * m, uint32_t W,
-                    uint32_t c, uint32_t t);
+void motorist_init(Motorist * m);
 
 void motorist_restart(Motorist * m);
 

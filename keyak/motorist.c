@@ -7,19 +7,11 @@
 #include "misc.h"
 #include "defs.h"
 
-void motorist_init(Motorist * m, uint32_t W,
-                    uint32_t c, uint32_t t)
+void motorist_init(Motorist * m)
 {
     uint8_t i;
-    m->W = W;
-    m->c = c;
-    m->t = t;
-
-    m->Rs = W * ((KEYAK_F_WIDTH - MAX(32, c))/W) >> 3;
-    m->Ra = W * ((KEYAK_F_WIDTH - 32)/W) >> 3;
 
     m->phase = MotoristReady;
-    m->cprime = W*((c+W-1)/W);
 
     for (i = 0; i < KEYAK_NUM_PISTONS; i++)
     {
@@ -49,7 +41,7 @@ static void make_knot(Motorist * m)
     buffer_init(&Tprime, NULL, 0);
     while(i--)
     {
-        primes[i] = m->cprime >> 3;
+        primes[i] = KEYAK_CPRIME/8;
     }
 
     engine_get_tags(&m->engine, &Tprime, primes);
@@ -80,7 +72,7 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
     }
     else
     {
-        offsets[0] = m->t >> 3;
+        offsets[0] = KEYAK_TAG_SIZE / 8;
         engine_get_tags(&m->engine,&Tprime, offsets);
         if (!unwrapFlag)
         {

@@ -54,8 +54,8 @@ int main(int argc, char * argv[])
     
     engine_precompute();
     // lunar keyak
-    keyak_init(&sendr,1600,12,256,128);
-    keyak_init(&recvr,1600,12,256,128);
+    keyak_init(&sendr);
+    keyak_init(&recvr);
 
     keyak_set_suv(&sendr, suv, suvlen);
     keyak_set_suv(&recvr, suv, suvlen);

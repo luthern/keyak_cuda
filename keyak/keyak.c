@@ -8,11 +8,9 @@
 #include "misc.h"
 
 
-void keyak_init(Keyak* k, uint32_t b, uint32_t nr, uint32_t c, uint32_t t)
+void keyak_init(Keyak* k)
 {
-    k->W = MAX(b/25,8);
-    k->c = c;
-    motorist_init(&k->motorist, k->W, c, t);
+    motorist_init(&k->motorist);
     buffer_init(&k->T,NULL,0);
     buffer_init(&k->SUV,NULL,0);
 }
@@ -28,7 +26,7 @@ void keyak_restart(Keyak * k)
 void keyak_set_suv(Keyak * k, uint8_t * key, uint32_t klen)
 {
     int i;
-    uint32_t lk = k->W/8 * CEIL(k->c + 9, k->W);
+    uint32_t lk = KEYAK_WORD_SIZE/8 * CEIL(KEYAK_CAPACITY + 9, KEYAK_WORD_SIZE);
     assert(klen <= lk - 2);
     buffer_put(&k->SUV, lk);
 
