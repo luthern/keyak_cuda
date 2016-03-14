@@ -100,7 +100,7 @@ void keccac_kernel(uint64_t *data, uint64_t *out, uint64_t databitlen) {
 
         for(int block=0;block<blocks;++block) { 
 
-            A[t] ^= B[t];
+            A[t] ^= B[t]; /*Absorption phase*/
 
             data += BITRATE/64;
             if(t < 16) B[t] = data[t];       /* prefetch data */
@@ -109,6 +109,7 @@ void keccac_kernel(uint64_t *data, uint64_t *out, uint64_t databitlen) {
                 C[t] = A[s]^A[s+5]^A[s+10]^A[s+15]^A[s+20];
                 D[t] = C[b[20+s]] ^ R64(C[b[5+s]],1,63);
                 C[t] = R64(A[a[t]]^D[b[t]], ro[t][0], ro[t][1]);
+ 
                 A[d[t]] = C[c[t][0]] ^ ((~C[c[t][1]]) & C[c[t][2]]); 
                 A[t] ^= rc[(t==0) ? 0 : 1][i]; 
             }
@@ -127,15 +128,15 @@ void keccac_kernel(uint64_t *data, uint64_t *out, uint64_t databitlen) {
             *p++ = 0x01; 
             while(p < (uint8_t *)&B[25])
                 *p++ = 0;
-        }
+        } /*Not needed*/
 
-        if(t < 16) A[t] ^= B[t];
+        if(t < 16) A[t] ^= B[t]; /*No if*/
 
         for(int i=0;i<ROUNDS;++i) { 
             C[t] = A[s]^A[s+5]^A[s+10]^A[s+15]^A[s+20];
             D[t] = C[b[20+s]] ^ R64(C[b[5+s]],1,63);
             C[t] = R64(A[a[t]]^D[b[t]], ro[t][0], ro[t][1]);
-            A[d[t]] = C[c[t][0]] ^ ((~C[c[t][1]]) & C[c[t][2]]); 
+            A[d[t]] = C[c[t][0]] ^ ((~C[c[t][1]]) & C[c[t][2]]); /*chi*/ 
             A[t] ^= rc[(t==0) ? 0 : 1][i]; 
         }
 
