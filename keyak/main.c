@@ -62,8 +62,6 @@ int main(int argc, char * argv[])
     keyak_add_nonce(&sendr, nonce, noncelen);
     keyak_add_nonce(&recvr, nonce, noncelen);
 
-    keyak_init(&sendr,1600,12,256,128);
-    keyak_init(&recvr,1600,12,256,128);
     printf("encrypting %d bytes\n", ptlen);
     struct timer t, tinit;
     memset(&t, 0, sizeof(struct timer));
