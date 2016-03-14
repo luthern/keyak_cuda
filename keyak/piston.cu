@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+
+#include <cuda.h>
+
 #include "piston.h"
 #include "defs.h"
 #include "misc.h"
@@ -66,10 +69,20 @@ void piston_inject(Piston * p, Buffer * x, uint8_t crypting)
     p->state[PISTON_INJECT_END] ^= w;
 }
 
+#define CRYPT_SIZE (KEYAK_F_WIDTH - KEYAK_CAPACITY)
+
+__global__ void piston_crypt_g(uint8_t * in, uint8_t * out)
+{
+    int i = blockIdx.x * CRYPT_SIZE + threadIdx.x;
+    if (i < CRYPT_SIZE)
+    {
+        out[i] = in[i];
+    }
+}
+
 void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
         uint8_t unwrapFlag)
 {
-    printf("    start: %d\n", I->offset);
     while(buffer_has_more(I) && w < PISTON_RS)
     {
         uint8_t x = buffer_get(I);
@@ -77,6 +90,5 @@ void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
         p->state[w] = unwrapFlag ? x : p->state[w] ^ x;
         w++;
     }
-    printf("    end: %d\n", I->offset);
     p->state[PISTON_CRYPT_END] ^= w;
 }

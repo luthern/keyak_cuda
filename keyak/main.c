@@ -8,6 +8,9 @@
 #include "misc.h"
 #include "add.h"
 
+//#define NUM_ITERATIONS 20000
+#define NUM_ITERATIONS 1
+
 static void dump_hex(uint8_t * buf, int len)
 {
     while(len--)
@@ -47,9 +50,6 @@ int main(int argc, char * argv[])
 
     ptlen = read(STDIN_FILENO, pt, sizeof(pt));
 
-    //printf("plain text: \n");
-    //dump_hex(pt, ptlen);
-
     unsigned char metadata[] = "movie quote.";
     
     engine_precompute();
@@ -67,7 +67,7 @@ int main(int argc, char * argv[])
     memset(&t, 0, sizeof(struct timer));
     int i;
     timer_start(&t, "10000 sessions");
-    for (i=0; i< 20000; i++)
+    for (i = 0; i < NUM_ITERATIONS; i++)
     {
         timer_start(&tinit,"keyak_initx2");
 

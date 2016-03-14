@@ -4,6 +4,8 @@
 #include "misc.h"
 #include "piston.h"
 
+#include "utils.h"
+
 void engine_init(Engine * e, Piston * pistons)
 {
     memset(e,0,sizeof(Engine));
@@ -125,8 +127,22 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
 void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 {
     assert(e->phase == EngineFresh);
-    printf("start: %d  end: %d  leftover %d\n",I->offset, I->length, I->length - I->offset);
-    printf("the total i can saturate is %d\n", PISTON_RS * KEYAK_NUM_PISTONS);
+
+    printf("start: %d  end: %d  leftover %d\n",
+            I->offset, I->length, I->length - I->offset);
+    printf("the total i can saturate is %d\n",
+            PISTON_RS * KEYAK_NUM_PISTONS);
+
+    uint8_t * dev_in;
+    uint8_t * dev_out;
+
+    HANDLE_ERROR(cudaMalloc(&dev_in, PISTON_RS * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMalloc(&dev_out, PISTON_RS * KEYAK_NUM_PISTONS ));
+
+    HANDLE_ERROR(cudaMemcpy(dev_in,I->buf,
+                MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length),
+                cudaMemcpyHostToDevice));
+
 
     uint32_t start = I->offset;
 
@@ -136,8 +152,6 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
         printf("  piston %d\n", i);
         piston_crypt(&e->pistons[i], I, O, e->Et[i], unwrapFlag);
     }
-
-    assert(I->offset == MIN(start+PISTON_RS * KEYAK_NUM_PISTONS, I->length));
 
     e->phase = buffer_has_more(I) ? EngineCrypted : EngineEndOfCrypt;
 }

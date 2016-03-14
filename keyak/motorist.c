@@ -146,7 +146,9 @@ uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
     assert(m->phase == MotoristReady);
 
     engine_inject_collective(&m->engine, suv, 1);
-
+    
+    printf("Rs: %d\n", PISTON_RS);
+    printf("Ra: %d\n", PISTON_RA);
 
     if (forgetFlag)
     {
