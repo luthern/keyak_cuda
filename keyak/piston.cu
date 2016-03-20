@@ -77,8 +77,9 @@ __global__ void piston_crypt(uint8_t * in, uint8_t * out, uint8_t * state, uint3
     int i = blockIdx.x * MAX_CUDA_THREADS_PER_BLOCK + threadIdx.x;
     if (i < amt)
     {
+        // printf("out[%d] ^= %d ^ %d\n",i,state[i],in[i]);
         // int piston = i / PISTON_RS;
-        out[i] ^= state[i] ^ in[i];
+        out[i] = state[i] ^ in[i];
         state[i] = unwrapFlag ? in[i] : in[i] ^ state[i];
 
         // if its last byte for piston ...

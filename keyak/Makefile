@@ -15,7 +15,7 @@ $(name): $(obj)
 add.o:
 	$(CCG) add.cu -c -o add.o
 
-engine.o: engine.cu
+engine.o: engine.cu piston.cu
 	$(CCG) engine.cu -c -o engine.o
 
 #piston.o: piston.cu

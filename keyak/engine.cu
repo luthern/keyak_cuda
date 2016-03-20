@@ -14,6 +14,20 @@ void engine_init(Engine * e, Piston * pistons)
     memset(e,0,sizeof(Engine));
     e->pistons = pistons;
     e->phase = EngineFresh;
+
+
+    // TODO consider making this one contiguous block
+    HANDLE_ERROR(cudaMalloc(&e->p_in, PISTON_RS * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMalloc(&e->p_out, PISTON_RS * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMalloc(&e->p_state, PISTON_RS * KEYAK_F_WIDTH / 8 ));
+
+    HANDLE_ERROR(cudaMemset(e->p_state,0,PISTON_RS * KEYAK_F_WIDTH / 8 ));
+}
+
+void engine_destroy(Engine * e)
+{
+    cudaFree(e->p_in);
+    cudaFree(e->p_out);
 }
 
 void engine_restart(Engine * e)
@@ -47,6 +61,7 @@ uint8_t offsets_zero[KEYAK_NUM_PISTONS];
 void engine_precompute()
 {
     memset(offsets_zero, 0, sizeof(offsets_zero));
+
 }
 
 void engine_inject(Engine * e, Buffer * A)
@@ -137,53 +152,34 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
     printf("the total i can saturate is %d\n",
             PISTON_RS * KEYAK_NUM_PISTONS);
 
-    uint8_t * dev_in;
-    uint8_t * dev_out;
-    uint8_t * dev_state;
     uint32_t amt = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
 
-    HANDLE_ERROR(cudaMalloc(&dev_in, PISTON_RS * KEYAK_NUM_PISTONS ));
-    HANDLE_ERROR(cudaMalloc(&dev_out, PISTON_RS * KEYAK_NUM_PISTONS ));
-    
-    if (!_init_crypt)
-    {
-        HANDLE_ERROR(cudaMalloc(&dev_state, PISTON_RS * KEYAK_F_WIDTH / 8 ));
-        HANDLE_ERROR(cudaMemset(dev_state,0,PISTON_RS * KEYAK_F_WIDTH / 8 ));
-    }
+    printf("plain text 1:\n");
+    dump_hex(I->buf, amt);
 
-    HANDLE_ERROR(cudaMemcpy(dev_in,I->buf + I->offset,
+    // TODO consider copying more than 1 block
+    // Copy block of input to GPU
+    HANDLE_ERROR(cudaMemcpy(e->p_in,I->buf + I->offset,
                 amt,
                 cudaMemcpyHostToDevice));
 
-
-    // function call
+    // use minimum number of blocks to get threads we need.
     uint32_t numBlocks = amt / MAX_CUDA_THREADS_PER_BLOCK + 1;
 
-    piston_crypt<<<numBlocks,MAX_CUDA_THREADS_PER_BLOCK>>>(dev_in,dev_out,dev_state,amt, unwrapFlag);
+    piston_crypt<<<numBlocks,MAX_CUDA_THREADS_PER_BLOCK>>>(e->p_in,e->p_out,e->p_state,amt, unwrapFlag);
 
-    debug();
-    HANDLE_ERROR(cudaMemcpy(O->buf, dev_out,
+    // Copy the output of pistons
+    HANDLE_ERROR(cudaMemcpy(O->buf, e->p_out,
                 amt,
                 cudaMemcpyDeviceToHost));
 
     printf("cipher text 1:\n");
     dump_hex(O->buf, amt);
 
-    debug();
-
     I->offset += amt;
-
-    //uint8_t i;
-    //for (i=0; i < KEYAK_NUM_PISTONS; i++)
-    //{
-    //    printf("  piston %d\n", i);
-    //    piston_crypt(&e->pistons[i], I, O, e->Et[i], unwrapFlag);
-    //}
 
     e->phase = buffer_has_more(I) ? EngineCrypted : EngineEndOfCrypt;
 
-    cudaFree(dev_in);
-    cudaFree(dev_out);
     exit(1);
 }
 

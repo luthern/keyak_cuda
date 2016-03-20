@@ -17,6 +17,12 @@ typedef struct _Engine
     Piston * pistons;
     uint8_t Et [KEYAK_NUM_PISTONS];
     EngineState phase;
+
+    // cuda
+    uint8_t * p_in;
+    uint8_t * p_out;
+    uint8_t * p_state;
+
 } Engine;
 
 
