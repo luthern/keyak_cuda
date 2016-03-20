@@ -11,7 +11,6 @@ void _HANDLE_ERROR(cudaError_t e, int line);
 
 #include <inttypes.h>
 
-
 void call_keccak_basic_kernel(uint64_t * state);
 
 #define PERMUTE(state)    call_keccak_basic_kernel(state)

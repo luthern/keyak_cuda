@@ -1,6 +1,6 @@
-/* Author: Noah Luther                                                       */
-/* Modified Keccak kernel for Keyak authenticated cipher.                    */
-/* Based on implementation by Gerhard Hoffman.                               */
+/* Author: Noah Luther                                            */
+/* Keccak-p permutation for Keyak authenticated cipher.           */
+/* Based on implementation of Keccak-f by Gerhard Hoffman.        */
 /**/
 
 #include <stdio.h>
@@ -13,9 +13,7 @@
 #include "cuda_keccak_basic.cuh"
 
 static uint64_t *d_data;
-static uint64_t *d_out;
 
-#define BITRATE       1600
 #define ROUNDS        12
 #define R64(a,b,c) (((a) << b) ^ ((a) >> c)) /* works on the GPU also for 
                                                 b = 64 or c = 64 */
@@ -80,80 +78,25 @@ __device__ __constant__ uint32_t ro[25][2];
 __device__ __constant__ uint64_t rc[5][ROUNDS];
 
 __global__
-void keccac_kernel(uint64_t *data, uint64_t *out, uint64_t databitlen) {
-
-    int const t = threadIdx.x; 
+void keccak_p_kernel(uint64_t *data) {
+    int const t = threadIdx.x;
     int const s = threadIdx.x%5;
 
     __shared__ uint64_t A[25];
-    __shared__ uint64_t B[25];
     __shared__ uint64_t C[25];
     __shared__ uint64_t D[25];
 
-    if(t < 25) {
-        A[t] = 0ULL;
-        B[t] = 0ULL;
-        if(t < 16) 
-            B[t] = data[t]; 
-
-        int const blocks = databitlen/BITRATE;
-
-        for(int block=0;block<blocks;++block) { 
-
-            A[t] ^= B[t]; /*Absorption phase*/
-
-            data += BITRATE/64;
-            if(t < 16) B[t] = data[t];       /* prefetch data */
-
-            for(int i=0;i<ROUNDS;++i) { 
-                C[t] = A[s]^A[s+5]^A[s+10]^A[s+15]^A[s+20];
-                D[t] = C[b[20+s]] ^ R64(C[b[5+s]],1,63);
-                C[t] = R64(A[a[t]]^D[b[t]], ro[t][0], ro[t][1]);
- 
-                A[d[t]] = C[c[t][0]] ^ ((~C[c[t][1]]) & C[c[t][2]]); 
-                A[t] ^= rc[(t==0) ? 0 : 1][i]; 
-            }
-
-            databitlen -= BITRATE;
-        }
-
-        int const bytes = databitlen/8;/*bytes will be smaller than BITRATE/8*/
-
-        if(t == 0) {
-            uint8_t *p = (uint8_t *)B+bytes;
-            uint8_t const q = *p;
-            *p++ = (q >> (8-(databitlen&7)) | (1 << (databitlen&7)));
-            *p++ = 0x00; 
-            *p++ = BITRATE/8; 
-            *p++ = 0x01; 
-            while(p < (uint8_t *)&B[25])
-                *p++ = 0;
-        } /*Not needed*/
-
-        if(t < 16) A[t] ^= B[t]; /*No if*/
+    if (t < 25) {
+        A[t] = data[t];
 
         for(int i=0;i<ROUNDS;++i) { 
             C[t] = A[s]^A[s+5]^A[s+10]^A[s+15]^A[s+20];
             D[t] = C[b[20+s]] ^ R64(C[b[5+s]],1,63);
             C[t] = R64(A[a[t]]^D[b[t]], ro[t][0], ro[t][1]);
-            A[d[t]] = C[c[t][0]] ^ ((~C[c[t][1]]) & C[c[t][2]]); /*chi*/ 
+            A[d[t]] = C[c[t][0]] ^ ((~C[c[t][1]]) & C[c[t][2]]); 
             A[t] ^= rc[(t==0) ? 0 : 1][i]; 
         }
-
-        if((bytes+4) > BITRATE/8) {/* then thread 0 has crossed the 128 byte */
-            if(t < 16) B[t] = 0ULL;/* boundary and touched some higher parts */
-            if(t <  9) B[t] = B[t+16]; /* of B.                              */
-            if(t < 16) A[t] ^= B[t];
-
-            for(int i=0;i<ROUNDS;++i) { 
-                C[t] = A[s]^A[s+5]^A[s+10]^A[s+15]^A[s+20];
-                D[t] = C[b[20+s]] ^ R64(C[b[5+s]],1,63);
-                C[t] = R64(A[a[t]]^D[b[t]], ro[t][0], ro[t][1]);
-                A[d[t]] = C[c[t][0]] ^ ((~C[c[t][1]]) & C[c[t][2]]); 
-                A[t] ^= rc[(t==0) ? 0 : 1][i]; 
-            }
-        }
-        out[t] = A[t];
+    data[t] = A[t];
     }
 }
 
@@ -163,8 +106,8 @@ void keccac_kernel(uint64_t *data, uint64_t *out, uint64_t databitlen) {
 */
 void call_keccak_basic_kernel(uint64_t * state) {
 
+    /* allocate space for the state on GPU */
     HANDLE_ERROR(cudaMalloc((void **)&d_data, 200));
-    HANDLE_ERROR(cudaMalloc((void **)&d_out, 200));
 
     /* copy the tables from host to GPU */
     HANDLE_ERROR(cudaMemcpyToSymbol(a, a_host, sizeof(a_host)));
@@ -178,14 +121,13 @@ void call_keccak_basic_kernel(uint64_t * state) {
     HANDLE_ERROR(cudaMemcpy(d_data, state, 200, cudaMemcpyHostToDevice));
 
     /* permute the state */
-    keccac_kernel<<<1,32>>>(d_data, d_out, 1600);
+    keccak_p_kernel<<<1,32>>>(d_data);
 
     /* fetch the generated data */
-    HANDLE_ERROR(cudaMemcpy(state, d_out, 200, cudaMemcpyDeviceToHost));
+    HANDLE_ERROR(cudaMemcpy(state, d_data, 200, cudaMemcpyDeviceToHost));
 
     /* clean up the tables on the GPU */
     HANDLE_ERROR(cudaFree(d_data));
-    HANDLE_ERROR(cudaFree(d_out));
 }
 
 void _HANDLE_ERROR(cudaError_t e, int line)
