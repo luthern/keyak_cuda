@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <stdint.h>
 
 #define MAX(a,b)        ((a) > (b) ? (a) : (b))
 #define MIN(a,b)        ((a) < (b) ? (a) : (b))
@@ -23,5 +24,7 @@ void timer_end(struct timer * t );
 void timer_accum(struct timer * t );
 
 void motorist_timers_end();
+
+void dump_hex(uint8_t * buf, int len);
 
 #endif

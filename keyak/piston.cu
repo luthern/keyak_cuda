@@ -69,17 +69,26 @@ void piston_inject(Piston * p, Buffer * x, uint8_t crypting)
     p->state[PISTON_INJECT_END] ^= w;
 }
 
-#define CRYPT_SIZE (KEYAK_F_WIDTH - KEYAK_CAPACITY)
+#define CRYPT_SIZE                      (PISTON_RS * KEYAK_NUM_PISTONS)
+#define MAX_CUDA_THREADS_PER_BLOCK      1024
 
-__global__ void piston_crypt_g(uint8_t * in, uint8_t * out)
+__global__ void piston_crypt(uint8_t * in, uint8_t * out, uint8_t * state, uint32_t amt, uint8_t unwrapFlag)
 {
-    int i = blockIdx.x * CRYPT_SIZE + threadIdx.x;
-    if (i < CRYPT_SIZE)
+    int i = blockIdx.x * MAX_CUDA_THREADS_PER_BLOCK + threadIdx.x;
+    if (i < amt)
     {
-        out[i] = in[i];
-    }
-}
+        // int piston = i / PISTON_RS;
+        out[i] ^= state[i] ^ in[i];
+        state[i] = unwrapFlag ? in[i] : in[i] ^ state[i];
 
+        // if its last byte for piston ...
+        if ( i % PISTON_RS == PISTON_RS-1 || i == amt - 1)
+        {
+            state[PISTON_CRYPT_END] ^= i % PISTON_RS;
+        }
+    } 
+}
+#if 0
 void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
         uint8_t unwrapFlag)
 {
@@ -92,3 +101,4 @@ void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
     }
     p->state[PISTON_CRYPT_END] ^= w;
 }
+#endif

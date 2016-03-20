@@ -2,6 +2,12 @@
 #include "misc.h"
 #include <string.h>
 
+void dump_hex(uint8_t * buf, int len)
+{
+    while(len--)
+        printf("%02hhx", *buf++);
+    printf("\n");
+}
 
 void timer_start(struct timer * t, const char * msg)
 {

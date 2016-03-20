@@ -1,5 +1,5 @@
 src = $(wildcard *.c)
-obj = $(src:.c=.o)
+obj = $(src:.c=.o) add.o engine.o
 
 name=keyak
 
@@ -9,11 +9,17 @@ LDFLAGS= -lcudart -lcudart
 CC=g++
 CCG=nvcc
 
-$(name): $(obj) add.o
+$(name): $(obj)
 	$(CC) -o $@ $^ $(LDFLAGS) 
 
 add.o:
 	$(CCG) add.cu -c -o add.o
+
+engine.o: engine.cu
+	$(CCG) engine.cu -c -o engine.o
+
+#piston.o: piston.cu
+#	$(CCG) piston.cu -c -o piston.o
 
 clean:
 	rm -f $(obj) $(name)

@@ -6,6 +6,9 @@
 
 #include "utils.h"
 
+// cuda does not support external linkage
+#include "piston.cu"
+
 void engine_init(Engine * e, Piston * pistons)
 {
     memset(e,0,sizeof(Engine));
@@ -124,6 +127,7 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
 }
 
 
+static int _init_crypt = 0;
 void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 {
     assert(e->phase == EngineFresh);
@@ -135,25 +139,52 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 
     uint8_t * dev_in;
     uint8_t * dev_out;
+    uint8_t * dev_state;
+    uint32_t amt = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
 
     HANDLE_ERROR(cudaMalloc(&dev_in, PISTON_RS * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&dev_out, PISTON_RS * KEYAK_NUM_PISTONS ));
+    
+    if (!_init_crypt)
+    {
+        HANDLE_ERROR(cudaMalloc(&dev_state, PISTON_RS * KEYAK_F_WIDTH / 8 ));
+        HANDLE_ERROR(cudaMemset(dev_state,0,PISTON_RS * KEYAK_F_WIDTH / 8 ));
+    }
 
-    HANDLE_ERROR(cudaMemcpy(dev_in,I->buf,
-                MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length),
+    HANDLE_ERROR(cudaMemcpy(dev_in,I->buf + I->offset,
+                amt,
                 cudaMemcpyHostToDevice));
 
 
-    uint32_t start = I->offset;
+    // function call
+    uint32_t numBlocks = amt / MAX_CUDA_THREADS_PER_BLOCK + 1;
 
-    uint8_t i;
-    for (i=0; i < KEYAK_NUM_PISTONS; i++)
-    {
-        printf("  piston %d\n", i);
-        piston_crypt(&e->pistons[i], I, O, e->Et[i], unwrapFlag);
-    }
+    piston_crypt<<<numBlocks,MAX_CUDA_THREADS_PER_BLOCK>>>(dev_in,dev_out,dev_state,amt, unwrapFlag);
+
+    debug();
+    HANDLE_ERROR(cudaMemcpy(O->buf, dev_out,
+                amt,
+                cudaMemcpyDeviceToHost));
+
+    printf("cipher text 1:\n");
+    dump_hex(O->buf, amt);
+
+    debug();
+
+    I->offset += amt;
+
+    //uint8_t i;
+    //for (i=0; i < KEYAK_NUM_PISTONS; i++)
+    //{
+    //    printf("  piston %d\n", i);
+    //    piston_crypt(&e->pistons[i], I, O, e->Et[i], unwrapFlag);
+    //}
 
     e->phase = buffer_has_more(I) ? EngineCrypted : EngineEndOfCrypt;
+
+    cudaFree(dev_in);
+    cudaFree(dev_out);
+    exit(1);
 }
 
 

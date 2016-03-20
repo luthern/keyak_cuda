@@ -11,12 +11,7 @@
 //#define NUM_ITERATIONS 20000
 #define NUM_ITERATIONS 1
 
-static void dump_hex(uint8_t * buf, int len)
-{
-    while(len--)
-        printf("%02hhx", *buf++);
-    printf("\n");
-}
+
 
 
 
@@ -27,8 +22,6 @@ int main(int argc, char * argv[])
     unsigned char * suv, * nonce;
     char pt[5024];
     int ptlen, suvlen, noncelen;
-
-    do_sum_adds();
 
     if (argc == 3)
     {

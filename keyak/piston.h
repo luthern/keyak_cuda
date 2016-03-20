@@ -40,8 +40,8 @@ void piston_init(Piston * p);
 void piston_get_tag(Piston * p, Buffer * T, uint32_t l);
 void piston_inject(Piston * p, Buffer * x, uint8_t crypting);
 void piston_spark(Piston * p, uint8_t eom, uint8_t offset);
-void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
-        uint8_t unwrapFlag);
+//void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
+//        uint8_t unwrapFlag);
 
 
 void piston_restart(Piston * p);
