@@ -22,6 +22,7 @@ typedef struct _Engine
     uint8_t * p_in;
     uint8_t * p_out;
     uint8_t * p_state;
+    uint8_t * p_tmp;
 
 } Engine;
 

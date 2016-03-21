@@ -7,7 +7,7 @@ typedef unsigned int tSmallUInt; /*INFO It could be more optimized to use "unsig
 typedef UINT64 tKeccakLane;
 
 
-void KeccakP1600_StatePermute(void *argState, UINT8 rounds, UINT8 LFSRinitialState);
+// __device__ void KeccakP1600_StatePermute(void *argState, UINT8 rounds, UINT8 LFSRinitialState);
 
 #define PERMUTE(state)      KeccakP1600_StatePermute(state, 12, 0xd5);
 
