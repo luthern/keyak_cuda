@@ -1,6 +1,9 @@
 #include "keccak.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "misc.h"
+#include <string.h>
+#include <unistd.h>
 #define     UNROLL_CHILOOP
 
 
@@ -157,13 +160,20 @@ int main()
         printf("%02hhx", input[i]);
     }
     printf("\n\n");
-    PERMUTE(input);
+    struct timer t;
+    memset(&t, 0, sizeof(struct timer));
+    timer_start(&t, "1000000 sessions");
+    for (i = 0; i < 1000000; i++)
+    {
+        PERMUTE(input);
+    }
+    timer_end(&t);
     for (i = 0; i < 200; i++)
     {
         printf("%02hhx", input[i]);
     }
     printf("\n\n");
-   return 0;
+    return 0;
 }
 
 

@@ -34,7 +34,7 @@ static const uint64_t round_const[5][ROUNDS] = {
 /* Rho-Offsets. Note that for each entry pair their respective sum is 64.
    Only the first entry of each pair is a rho-offset. The second part is
    used in the R64 macros. */
-static const int rho_offsets[25][2] = {
+static const uint8_t rho_offsets[25][2] = {
        /*y=0*/         /*y=1*/         /*y=2*/         /*y=3*/         /*y=4*/
 /*x=0*/{ 0,64}, /*x=1*/{44,20}, /*x=2*/{43,21}, /*x=3*/{21,43}, /*x=4*/{14,50},
 /*x=1*/{ 1,63}, /*x=2*/{ 6,58}, /*x=3*/{25,39}, /*x=4*/{ 8,56}, /*x=0*/{18,46},
@@ -42,39 +42,39 @@ static const int rho_offsets[25][2] = {
 /*x=3*/{28,36}, /*x=4*/{20,44}, /*x=0*/{ 3,61}, /*x=1*/{45,19}, /*x=2*/{61, 3},
 /*x=4*/{27,37}, /*x=0*/{36,28}, /*x=1*/{10,54}, /*x=2*/{15,49}, /*x=3*/{56, 8}};
 
-static const int a_host[25] = {
+static const uint8_t a_host[25] = {
     0,  6, 12, 18, 24,
     1,  7, 13, 19, 20,
     2,  8, 14, 15, 21,
     3,  9, 10, 16, 22,
     4,  5, 11, 17, 23};
 
-static const int b_host[25] = {
+static const uint8_t b_host[25] = {
     0,  1,  2,  3, 4,
     1,  2,  3,  4, 0,
     2,  3,  4,  0, 1,
     3,  4,  0,  1, 2,
     4,  0,  1,  2, 3};
 
-static const int c_host[25][3] = {
+static const uint8_t c_host[25][3] = {
     { 0, 1, 2}, { 1, 2, 3}, { 2, 3, 4}, { 3, 4, 0}, { 4, 0, 1},
     { 5, 6, 7}, { 6, 7, 8}, { 7, 8, 9}, { 8, 9, 5}, { 9, 5, 6},
     {10,11,12}, {11,12,13}, {12,13,14}, {13,14,10}, {14,10,11},
     {15,16,17}, {16,17,18}, {17,18,19}, {18,19,15}, {19,15,16},
     {20,21,22}, {21,22,23}, {22,23,24}, {23,24,20}, {24,20,21}};
 
-static const int d_host[25] = {
+static const uint8_t d_host[25] = {
           0,  1,  2,  3,  4,
          10, 11, 12, 13, 14,
          20, 21, 22, 23, 24,
           5,  6,  7,  8,  9,
          15, 16, 17, 18, 19};
 
-__device__ __constant__ uint32_t a[25];
-__device__ __constant__ uint32_t b[25];
-__device__ __constant__ uint32_t c[25][3];
-__device__ __constant__ uint32_t d[25];
-__device__ __constant__ uint32_t ro[25][2];
+__device__ __constant__ uint8_t a[25];
+__device__ __constant__ uint8_t b[25];
+__device__ __constant__ uint8_t c[25][3];
+__device__ __constant__ uint8_t d[25];
+__device__ __constant__ uint8_t ro[25][2];
 __device__ __constant__ uint64_t rc[5][ROUNDS];
 
 __global__
@@ -100,15 +100,8 @@ void keccak_p_kernel(uint64_t *data) {
     }
 }
 
-/* Modifies state with 12 rounds of Keccak.
-   Uses the LFSR round constants for Keyak.
-   Computes on GPU. Optimization?
-*/
-void call_keccak_basic_kernel(uint64_t * state) {
-
-    /* allocate space for the state on GPU */
-    HANDLE_ERROR(cudaMalloc((void **)&d_data, 200));
-
+void gpu_init_keccak_tables()
+{
     /* copy the tables from host to GPU */
     HANDLE_ERROR(cudaMemcpyToSymbol(a, a_host, sizeof(a_host)));
     HANDLE_ERROR(cudaMemcpyToSymbol(b, b_host, sizeof(b_host)));
@@ -116,6 +109,15 @@ void call_keccak_basic_kernel(uint64_t * state) {
     HANDLE_ERROR(cudaMemcpyToSymbol(d, d_host, sizeof(d_host)));
     HANDLE_ERROR(cudaMemcpyToSymbol(ro, rho_offsets, sizeof(rho_offsets)));
     HANDLE_ERROR(cudaMemcpyToSymbol(rc, round_const, sizeof(round_const)));
+
+    /* allocate space for the state on GPU */
+    HANDLE_ERROR(cudaMalloc((void **)&d_data, 200));
+}
+
+/* Modifies state with 12 rounds of Keccak.
+   Uses the LFSR round constants for Keyak.
+*/
+void call_keccak_basic_kernel(uint64_t * state) {
 
     /* copy the data from the state to the GPU */
     HANDLE_ERROR(cudaMemcpy(d_data, state, 200, cudaMemcpyHostToDevice));
@@ -125,7 +127,10 @@ void call_keccak_basic_kernel(uint64_t * state) {
 
     /* fetch the generated data */
     HANDLE_ERROR(cudaMemcpy(state, d_data, 200, cudaMemcpyDeviceToHost));
+}
 
+void cleanup_state()
+{
     /* clean up the tables on the GPU */
     HANDLE_ERROR(cudaFree(d_data));
 }

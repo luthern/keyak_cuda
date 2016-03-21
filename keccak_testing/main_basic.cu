@@ -20,6 +20,7 @@
 #include <cuda_runtime_api.h>
 #include "cuda_keccak_basic.cuh"
 #include <driver_types.h>
+#include "misc.h"
 
 int main(int argc, const char** argv) {
 
@@ -34,7 +35,16 @@ int main(int argc, const char** argv) {
         printf("%02hhx", input[i]);
     }
     printf("\n\n");
+    struct timer t;
+    memset(&t, 0, sizeof(struct timer));
+
+    gpu_init_keccak_tables();
+    timer_start(&t, "1000000 sessions");
+    
     PERMUTE((uint64_t*) input);
+    cleanup_state();
+    timer_end(&t);
+
     for (i = 0; i < 200; i++)
     {
         printf("%02hhx", input[i]);
