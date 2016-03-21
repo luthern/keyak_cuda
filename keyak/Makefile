@@ -10,7 +10,7 @@ CC=g++
 CCG=nvcc
 
 $(name): $(obj)
-	$(CC) -o $@ $^ $(LDFLAGS) 
+	$(CCG) -o $@ $^ $(LDFLAGS) 
 
 engine.o: engine.cu piston.cu keccak.cu
 	$(CCG) engine.cu -c -o engine.o
@@ -18,8 +18,8 @@ engine.o: engine.cu piston.cu keccak.cu
 utils.o: utils.cu
 	$(CCG) utils.cu -c -o utils.o
 
-keccak.o: keccak.cu
-	$(CCG) keccak.cu -c -o keccak.o
+#keccak.o: keccak.cu
+#	$(CCG) keccak.cu -c -o keccak.o
 
 #piston.o: piston.cu
 #	$(CCG) piston.cu -c -o piston.o
