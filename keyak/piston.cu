@@ -39,7 +39,7 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
     if (eom)
     {
         uint8_t offset = offsets[piston];
-        printf("piston %d offset %d\n",piston,offset);
+        //printf("piston %d offset %d\n",piston,offset);
         state[stateoffset + PISTON_EOM] = ( offset == 0 ) ? 0xff : offset;
     }
     PERMUTE(state + stateoffset);
@@ -114,7 +114,7 @@ __global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset,
 
     if ( i < size)
     {
-        printf("byte %d injected\n", i);
+        //printf("byte %d injected\n", i);
         state[statestart + w + threadIdx.x]
             ^= x[i];
     }
@@ -131,7 +131,7 @@ __global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset,
         else if ( size + cap > bitrate )
         {
             state[statestart + PISTON_INJECT_END] ^= w+(uint8_t)(size - cap * piston);
-            printf("piston %d ended with %d bytes\n", piston, size - cap * piston);
+            //printf("piston %d ended with %d bytes\n", piston, size - cap * piston);
         }
         else
         {
@@ -189,7 +189,7 @@ __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
     uint8_t piston = blockIdx.x;
     if (consuming < amt)
     {
-        if (threadIdx.x==0) printf("piston %d start %d  \n", piston, consuming);
+        //if (threadIdx.x==0) printf("piston %d start %d  \n", piston, consuming);
         // printf("out[%d] ^= %d ^ %d\n",i,state[i],in[i]);
         // int piston = i / PISTON_RS;
         out[consuming] = state[i] ^ in[consuming];
