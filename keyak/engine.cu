@@ -44,6 +44,8 @@ void engine_restart(Engine * e)
 
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
+
+    // TODO pass offsets array
     piston_spark<<<KEYAK_NUM_PISTONS,1>>>
         (e->p_state, eom, offsets[0]);
     memmove(e->Et, offsets, KEYAK_NUM_PISTONS);
