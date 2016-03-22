@@ -82,6 +82,12 @@ int main(int argc, char * argv[])
     dump_hex( sendr.T.buf, sendr.T.length );
     dump_hex( sendr.O.buf + sendr.O.length - 50,50 );
 
+    int len = sendr.O.length;
+    printf("first %d of cipher: \n",len);
+    dump_hex( sendr.O.buf ,  len);
+
+
+
     printf("hello keyak\n");
 
     return 0;

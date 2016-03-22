@@ -132,6 +132,7 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
     {
         timer_start(&tknot, "make_knot");
+        printf("make_knot\n");
         make_knot(m);
         timer_accum(&tknot);
     }
