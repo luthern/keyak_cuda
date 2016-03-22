@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "utils.h"
 
-void _HANDLE_ERROR(cudaError_t e, char * file, int line)
+void _HANDLE_ERROR(cudaError_t e, const char * file, int line)
 {
     if (e != cudaSuccess)
     {

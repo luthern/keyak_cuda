@@ -21,15 +21,18 @@ void engine_init(Engine * e, Piston * pistons)
 
     // TODO consider making this one contiguous block
     HANDLE_ERROR(cudaMalloc(&e->p_in, PISTON_RS * KEYAK_NUM_PISTONS ));
-    HANDLE_ERROR(cudaMalloc(&e->p_out, PISTON_RS * KEYAK_NUM_PISTONS ));
-    HANDLE_ERROR(cudaMalloc(&e->p_state, PISTON_RS * KEYAK_F_WIDTH / 8 ));
-    HANDLE_ERROR(cudaMalloc(&e->p_tmp, KEYAK_BUFFER_SIZE * 8 ));
 
-    HANDLE_ERROR(cudaMemset(e->p_state,0,PISTON_RS * KEYAK_F_WIDTH / 8 ));
+    HANDLE_ERROR(cudaMalloc(&e->p_out, PISTON_RS * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMalloc(&e->p_state, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMalloc(&e->p_tmp, KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
+
+    HANDLE_ERROR(cudaMemset(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMemset(e->p_tmp,0,KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
 }
 
 void engine_destroy(Engine * e)
 {
+    printf("engine_destroyed\n");
     cudaFree(e->p_in);
     cudaFree(e->p_out);
 }
@@ -42,9 +45,8 @@ void engine_restart(Engine * e)
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
     piston_spark<<<KEYAK_NUM_PISTONS,1>>>
-        (e->p_state, eom, offsets);
+        (e->p_state, eom, offsets[0]);
     memmove(e->Et, offsets, KEYAK_NUM_PISTONS);
-   
     /*
     uint8_t i;
     for (i=0; i < KEYAK_NUM_PISTONS; i++)
@@ -126,6 +128,16 @@ static void dump_state(Engine * e, int piston)
     dump_hex(tmp, sizeof(tmp));
 }
 
+static void dump_hash(Engine * e, int piston)
+{
+    uint8_t tmp[KEYAK_STATE_SIZE];
+
+    HANDLE_ERROR(cudaMemcpy(tmp,e->p_state + piston * KEYAK_STATE_SIZE,
+                            KEYAK_STATE_SIZE, cudaMemcpyDeviceToHost));
+    PERMUTE(tmp);
+    dump_hex(tmp, sizeof(tmp));
+}
+
 void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
 {
     assert(e->phase == EngineFresh);
@@ -135,6 +147,7 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
         buffer_put(X,KEYAK_NUM_PISTONS);
         buffer_put(X,0);
     }
+
 
     // TODO should support variable length
     assert(X->length < KEYAK_BUFFER_SIZE);
@@ -148,6 +161,7 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
     // but i think device to device copying would be speedier than
     // host to device cuz pci bus
     dup_for_pistons<<<1,KEYAK_NUM_PISTONS>>>(e->p_tmp, X->length,dFlag);
+
 
     uint32_t i;
     for (i=0; i < X->length; i += PISTON_RA)
@@ -167,17 +181,21 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
             // TODO
             // call spark
         }
+
         // test
-        int j = 0;
+        int j;
         for (j=0; j < KEYAK_NUM_PISTONS; j++)
         {
             printf("piston %d state: \n", j);
             dump_state(e,j);
+            //printf("respective hash:\n");
+            //dump_hash(e,j);
         }
-
     }
 
     e->phase = EngineEndOfMessage;
+
+
 /*
     uint8_t i;
     // 1 this is done
@@ -232,6 +250,7 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
 
 void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 {
+
     assert(e->phase == EngineFresh);
 
     printf("start: %d  end: %d  leftover %d\n",
@@ -240,18 +259,23 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
             PISTON_RS * KEYAK_NUM_PISTONS);
 
     uint32_t amt = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
+    
+    //printf("state: \n");
+    //int j;
+    //for (j=0; j < KEYAK_NUM_PISTONS; j++)
+    //{
+    //    dump_state(e,j);
+    //}
 
     printf("plain text 1:\n");
     dump_hex(I->buf, amt);
 
     // TODO consider copying more than 1 block
     // Copy block of input to GPU
-    debug();  // conor look back here
     HANDLE_ERROR(cudaMemcpy(e->p_in,I->buf + I->offset,
                 amt,
                 cudaMemcpyHostToDevice));
-    debug();
-
+    
     piston_crypt<<<KEYAK_NUM_PISTONS,PISTON_RS>>>
         (e->p_in,e->p_out,e->p_state,amt, unwrapFlag);
 

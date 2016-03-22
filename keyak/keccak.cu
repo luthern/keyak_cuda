@@ -24,28 +24,7 @@
 #define ROL64(a, offset) ((((UINT64)a) << offset) ^ (((UINT64)a) >> (64-offset)))
 #endif
 
-__device__ const UINT8 KeccakF_RotationConstants[25] =
-{
-     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14, 27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-};
-
-__device__ const UINT8 KeccakF_PiLane[25] =
-{
-    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4, 15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
-};
-
-#define DIVISION_INSTRUCTION
-#if    defined(DIVISION_INSTRUCTION)
-#define    MOD5(argValue)    ((argValue) % 5)
-#else
-const UINT8 KeccakF_Mod5[10] =
-{
-    0, 1, 2, 3, 4, 0, 1, 2, 3, 4
-};
-#define    MOD5(argValue)    KeccakF_Mod5[argValue]
-#endif
-
-__device__ static tKeccakLane KeccakF1600_GetNextRoundConstant( UINT8 *LFSR )
+__host__ __device__ static tKeccakLane KeccakF1600_GetNextRoundConstant( UINT8 *LFSR )
 {
     tSmallUInt i;
     tKeccakLane    roundConstant;
@@ -70,8 +49,30 @@ __device__ static tKeccakLane KeccakF1600_GetNextRoundConstant( UINT8 *LFSR )
     return ( roundConstant );
 }
 
-__device__ void KeccakP1600_StatePermute(void *argState, UINT8 rounds, UINT8 LFSRinitialState)
+__host__ __device__ void KeccakP1600_StatePermute(void *argState, UINT8 rounds, UINT8 LFSRinitialState)
 {
+    const UINT8 KeccakF_RotationConstants[25] =
+    {
+        1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14, 27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+    };
+
+    const UINT8 KeccakF_PiLane[25] =
+    {
+        10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4, 15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+    };
+
+    //#define DIVISION_INSTRUCTION
+#if    defined(DIVISION_INSTRUCTION)
+#define    MOD5(argValue)    ((argValue) % 5)
+#else
+    const UINT8 KeccakF_Mod5[10] =
+    {
+        0, 1, 2, 3, 4, 0, 1, 2, 3, 4
+    };
+#define    MOD5(argValue)    KeccakF_Mod5[argValue]
+#endif
+
+
     tSmallUInt x, y, round;
     tKeccakLane        temp;
     tKeccakLane        BC[5];

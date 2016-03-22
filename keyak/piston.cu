@@ -31,17 +31,18 @@ void piston_restart(Piston * p)
     memset(p->state, 0, KEYAK_STATE_SIZE);
 }
 
-__global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
+__global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t  offset)
 {
     uint8_t piston = blockIdx.x;
-    uint8_t offset = offsets[piston];
     uint32_t stateoffset = piston * KEYAK_STATE_SIZE;
-
+    
+    state[stateoffset + PISTON_EOM] = 0;
     if (eom)
     {
-        state[stateoffset + PISTON_EOM] ^= ( offset == 0 ) ? 0xff : offset;
+        state[stateoffset + PISTON_EOM] = ( offset == 0 ) ? 0xff : offset;
     }
     PERMUTE(state + stateoffset);
+
 }
 
 #if 0

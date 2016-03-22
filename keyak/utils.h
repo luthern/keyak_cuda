@@ -8,6 +8,6 @@
 
 #define HANDLE_ERROR(e)  _HANDLE_ERROR(e, __FILE__,__LINE__)
 
-void _HANDLE_ERROR(cudaError_t e,char * file,  int line);
+void _HANDLE_ERROR(cudaError_t e,const char * file,  int line);
 
 #endif
