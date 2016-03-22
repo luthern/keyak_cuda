@@ -99,10 +99,42 @@ __global__ void dup_for_pistons(uint8_t * mem, size_t size, uint8_t dFlag)
 
 }
 
+// size is the size of entire meta data block for pistons to absorb
+// size <= PISTON_RA * KEYAK_NUM_PISTONS
+// TODO consider crypting flag
+__global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset, uint32_t size, uint8_t crypting)
+{
+    uint8_t piston = blockIdx.x;
+    uint32_t statestart = piston * KEYAK_STATE_SIZE;
+    int i = piston * KEYAK_BUFFER_SIZE + threadIdx.x;
+
+    if (i < size)
+    {
+        uint8_t w = crypting ? PISTON_RS : 0;
+        if (threadIdx.x == 0)
+        {
+            state[statestart + PISTON_INJECT_START] ^= w;
+
+            uint16_t bitrate = (PISTON_RA - w) * (piston + 1);
+            if (bitrate)
+            {
+                state[statestart + PISTON_INJECT_END] ^= PISTON_RA - w;
+            }
+            else
+            {
+                state[statestart + PISTON_INJECT_END] ^= (uint8_t) bitrate - size;
+            }
+        }
+        state[statestart + w + threadIdx.x]
+            ^= x[offset + i];
+    }
+
+}
 // size is size of each data to copy/inject to piston state
-// size <= Ra
+// size <= PISTON_RA
 // offset is the offset from each block in x to pull from
-__global__ void piston_inject(uint8_t * state, uint8_t * x, uint32_t offset, uint8_t size, uint8_t crypting)
+// TODO consider crypting flag
+__global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t offset, uint8_t size, uint8_t crypting)
 {
     uint8_t piston = blockIdx.x;
     uint32_t statestart = piston * KEYAK_STATE_SIZE;
