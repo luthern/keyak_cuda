@@ -45,25 +45,6 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
     PERMUTE(state + stateoffset);
 
 }
-
-#if 0
-void piston_spark(Piston * p, uint8_t eom, uint8_t offset)
-{
-    if (eom)
-    {
-        p->state[PISTON_EOM] ^= ( offset == 0 ) ? 0xff : offset;
-    }
-    else
-    {
-        p->state[PISTON_EOM] ^= 0;
-    }
-
-    PERMUTE(p->state);
-    // TODO add permutation call here
-    // py-ref: self.state = self.f.apply(self.state)
-}
-#endif
-
 void piston_get_tag(Piston * p, Buffer * T, uint32_t l)
 {
     assert(l <= PISTON_RS);
@@ -73,16 +54,6 @@ void piston_get_tag(Piston * p, Buffer * T, uint32_t l)
         buffer_put(T, p->state[i]);
     }
 }
-/*
-#define GPU_ERROR(x)       D_HANDLE_ERROR(x,__LINE__)
-__device__ void D_HANDLE_ERROR(cudaError_t e, int line)
-{
-    if (e != cudaSuccess)
-    {
-        printf("line: %d. gpu error ?\n", line);
-    }
-}
-*/
 
 // make consecutive copies of memory
 // for each piston
@@ -164,19 +135,6 @@ __global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t off
     }
 
 }
-#if 0
-void piston_inject(Piston * p, Buffer * x, uint8_t crypting)
-{
-    uint8_t w = crypting ? PISTON_RS : 0;
-    p->state[PISTON_INJECT_START] ^= w;
-
-    while(buffer_has_more(x) && w < PISTON_RA)
-    {
-        p->state[w++] ^= buffer_get(x); 
-    }
-    p->state[PISTON_INJECT_END] ^= w;
-}
-#endif
 
 #define CRYPT_SIZE                      (PISTON_RS * KEYAK_NUM_PISTONS)
 #define MAX_CUDA_THREADS_PER_BLOCK      1024
@@ -202,17 +160,5 @@ __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
         }
     }
 }
-#if 0
-void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
-        uint8_t unwrapFlag)
-{
-    while(buffer_has_more(I) && w < PISTON_RS)
-    {
-        uint8_t x = buffer_get(I);
-        buffer_put(O, p->state[w] ^ x);
-        p->state[w] = unwrapFlag ? x : p->state[w] ^ x;
-        w++;
-    }
-    p->state[PISTON_CRYPT_END] ^= w;
-}
-#endif
+
+

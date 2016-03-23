@@ -85,14 +85,6 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 
 
     memmove(e->Et, offsets, KEYAK_NUM_PISTONS);
-    /*
-    uint8_t i;
-    for (i=0; i < KEYAK_NUM_PISTONS; i++)
-    {
-        piston_spark(&e->pistons[i],eom, offsets[i]);
-    }
-    memmove(e->Et, offsets, KEYAK_NUM_PISTONS);
-    */
 }
 
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
@@ -156,13 +148,6 @@ void engine_inject(Engine * e, Buffer * A)
 //        dump_state(e,j);
 //    }
 
-
-    /*
-    for(i=0; i < KEYAK_NUM_PISTONS; i++)
-    {
-        // piston_inject(&e->pistons[i],A,cryptingFlag);
-    }
-    */
     if (e->phase == EngineCrypted || buffer_has_more(A))
     {
         engine_spark(e,0, offsets_zero);
@@ -253,57 +238,6 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
     }
 
     e->phase = EngineEndOfMessage;
-
-
-/*
-    uint8_t i;
-    // 1 this is done
-    for (i=0; i< KEYAK_NUM_PISTONS; i++)
-    {
-        buffer_init(Xt+i, NULL, 0);
-    }
-    // 2 done
-    while(buffer_has_more(X))
-    {
-        uint8_t b = buffer_get(X); 
-        for (i=0; i< KEYAK_NUM_PISTONS; i++)
-        {
-            buffer_put(&Xt[i],b);
-        }
-    }
-
-    // 3 diversify done
-    if (dFlag)
-    {
-        for (i=0; i< KEYAK_NUM_PISTONS; i++)
-        {
-            buffer_put(&Xt[i],KEYAK_NUM_PISTONS);
-            buffer_put(&Xt[i],i);
-        }
-    }
-
-    // (no need)
-    for (i=0; i< KEYAK_NUM_PISTONS; i++)
-    {
-        buffer_seek(&Xt[i],0);
-    }
-
-    // TODO
-    while(buffer_has_more(Xt))
-    {
-        for (i=0; i< KEYAK_NUM_PISTONS; i++)
-        {
-            piston_inject(&e->pistons[i], &Xt[i], 0);
-        }
-        if (buffer_has_more(Xt))
-        {
-            uint8_t offsets[KEYAK_NUM_PISTONS];
-            memset(offsets, 0, sizeof(offsets));
-            engine_spark(e, 0, offsets);
-        }
-    }
-    e->phase = EngineEndOfMessage;
-*/
 }
 
 //static int iter =0 ;
@@ -311,13 +245,6 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 {
 
     assert(e->phase == EngineFresh);
-    //printf("ENGINE_CRYPT\n");
-
-    //printf("start: %d  end: %d  leftover %d\n",
-    //        I->offset, I->length, I->length - I->offset);
-    //printf("the total i can saturate is %d\n",
-    //        PISTON_RS * KEYAK_NUM_PISTONS);
-
     uint32_t amt = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
 
     //printf("state: \n");
