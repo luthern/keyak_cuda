@@ -24,15 +24,13 @@ static void dump_state(Engine * e, int piston)
 #endif
 
 
-
-
 void engine_init(Engine * e, Piston * pistons)
 {
     memset(e,0,sizeof(Engine));
     e->pistons = pistons;
     e->phase = EngineFresh;
 
-    // TODO consider making this one contiguous block
+    // TODO consider making these all one contiguous block or even different memories
     HANDLE_ERROR(cudaMalloc(&e->p_in, PISTON_RS * KEYAK_NUM_PISTONS ));
 
     HANDLE_ERROR(cudaMalloc(&e->p_out, PISTON_RS * KEYAK_NUM_PISTONS ));
@@ -90,12 +88,20 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
 {
     assert(e->phase == EngineEndOfMessage);
-    //printf("ENGINE_GET_TAGS\n");
     engine_spark(e, 1, L);
     uint8_t i;
     for (i = 0; i < KEYAK_NUM_PISTONS; i++)
     {
-        piston_get_tag(&e->pistons[i], T, L[i]);
+        if (L[i])
+        {
+            // TODO consider making one copy or making this async
+            HANDLE_ERROR(
+                    cudaMemcpy(T->buf + T->length,
+                                e->p_state + i * KEYAK_STATE_SIZE,
+                                L[i], cudaMemcpyDeviceToHost)
+                    );
+            T->length += L[i];
+        }
     }
     e->phase = EngineFresh;
 }

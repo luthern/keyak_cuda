@@ -68,11 +68,13 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
 
     if (!tagFlag)
     {
+        // move engine state along ..
         engine_get_tags(&m->engine,&Tprime, offsets);
     }
     else
     {
         offsets[0] = KEYAK_TAG_SIZE / 8;
+        // TODO simplify extra memcpy here
         engine_get_tags(&m->engine,&Tprime, offsets);
         if (!unwrapFlag)
         {
