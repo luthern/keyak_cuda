@@ -74,13 +74,14 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
     else
     {
         offsets[0] = KEYAK_TAG_SIZE / 8;
-        // TODO simplify extra memcpy here
-        engine_get_tags(&m->engine,&Tprime, offsets);
         if (!unwrapFlag)
         {
-            buffer_clone(T,&Tprime);
+            engine_get_tags(&m->engine,T, offsets);
+            return 1;
         }
-        else if (!buffer_same(&Tprime,T))
+        
+        engine_get_tags(&m->engine,&Tprime, offsets);
+        if (!buffer_same(&Tprime,T))
         {
             m->phase = MotoristFailed;
             return 0;
