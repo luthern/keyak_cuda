@@ -10,7 +10,6 @@
 void motorist_init(Motorist * m)
 {
     uint8_t i;
-
     m->phase = MotoristReady;
 
     for (i = 0; i < KEYAK_NUM_PISTONS; i++)
@@ -41,7 +40,7 @@ static void make_knot(Motorist * m)
     buffer_init(&Tprime, NULL, 0);
     while(i--)
     {
-        primes[i] = KEYAK_CPRIME/8;
+        primes[i] = KEYAK_CPRIME >> 3;
     }
 
     engine_get_tags(&m->engine, &Tprime, primes);
@@ -50,6 +49,7 @@ static void make_knot(Motorist * m)
 
     engine_inject_collective(&m->engine, &Tprime, 0);
 }
+
 
 void motorist_setup()
 {
@@ -68,20 +68,17 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
 
     if (!tagFlag)
     {
-        // move engine state along ..
         engine_get_tags(&m->engine,&Tprime, offsets);
     }
     else
     {
         offsets[0] = KEYAK_TAG_SIZE / 8;
+        engine_get_tags(&m->engine,&Tprime, offsets);
         if (!unwrapFlag)
         {
-            engine_get_tags(&m->engine,T, offsets);
-            return 1;
+            buffer_clone(T,&Tprime);
         }
-        
-        engine_get_tags(&m->engine,&Tprime, offsets);
-        if (!buffer_same(&Tprime,T))
+        else if (!buffer_same(&Tprime,T))
         {
             m->phase = MotoristFailed;
             return 0;
@@ -103,7 +100,6 @@ void motorist_timers_end()
     timer_end(&ttag);
 }
 
-extern void dump_state(Engine * e, int piston);
 void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
                     Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag)
 {
@@ -115,35 +111,20 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
         timer_accum(&tinject);
     }
 
-    int iter = 0 ;
-
     while(buffer_has_more(I))
     {
         timer_start(&tcrypt, "engine_crypt");
         engine_crypt(&m->engine, I, O, unwrapFlag);
-
         timer_accum(&tcrypt);
 
         timer_start(&tinject, "engine_inject");
         engine_inject(&m->engine,A);
         timer_accum(&tinject);
-
-        /*printf("CRYPT STATE %d:\n", iter++);*/
-        /*int j;*/
-        /*for (j=0; j < KEYAK_NUM_PISTONS; j++)*/
-        /*{*/
-            /*printf("piston %d\n", j);*/
-            /*dump_state(&m->engine,j);*/
-        /*}*/
-
-
-
     }
 
     while(buffer_has_more(A))
     {
         timer_start(&tinject, "engine_inject");
-        /*printf("theres more A\n");*/
         engine_inject(&m->engine,A);
         timer_accum(&tinject);
     }
@@ -151,7 +132,6 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
     {
         timer_start(&tknot, "make_knot");
-        /*printf("make_knot\n");*/
         make_knot(m);
         timer_accum(&tknot);
     }
@@ -166,9 +146,7 @@ uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
     assert(m->phase == MotoristReady);
 
     engine_inject_collective(&m->engine, suv, 1);
-    
-    printf("Rs: %d\n", PISTON_RS);
-    printf("Ra: %d\n", PISTON_RA);
+
 
     if (forgetFlag)
     {

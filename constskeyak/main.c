@@ -8,10 +8,12 @@
 #include "misc.h"
 #include "add.h"
 
-//#define NUM_ITERATIONS 20000
-#define NUM_ITERATIONS 1
-
-
+static void dump_hex(uint8_t * buf, int len)
+{
+    while(len--)
+        printf("%x", *buf++);
+    printf("\n");
+}
 
 
 
@@ -22,6 +24,8 @@ int main(int argc, char * argv[])
     unsigned char * suv, * nonce;
     char pt[5024];
     int ptlen, suvlen, noncelen;
+
+    do_sum_adds();
 
     if (argc == 3)
     {
@@ -43,6 +47,9 @@ int main(int argc, char * argv[])
 
     ptlen = read(STDIN_FILENO, pt, sizeof(pt));
 
+    //printf("plain text: \n");
+    //dump_hex(pt, ptlen);
+
     unsigned char metadata[] = "movie quote.";
     
     engine_precompute();
@@ -60,7 +67,7 @@ int main(int argc, char * argv[])
     memset(&t, 0, sizeof(struct timer));
     int i;
     timer_start(&t, "10000 sessions");
-    for (i = 0; i < NUM_ITERATIONS; i++)
+    for (i=0; i< 1; i++)
     {
         timer_start(&tinit,"keyak_initx2");
 
@@ -80,11 +87,7 @@ int main(int argc, char * argv[])
 
     motorist_timers_end();
     dump_hex( sendr.T.buf, sendr.T.length );
-    dump_hex( sendr.O.buf + sendr.O.length - 50,50 );
-
-    //int len = sendr.O.length;
-    //printf("first %d of cipher: \n",len);
-    //dump_hex( sendr.O.buf ,  len);
+    dump_hex( sendr.O.buf+sendr.O.length - 50,50 );
 
     printf("hello keyak\n");
 

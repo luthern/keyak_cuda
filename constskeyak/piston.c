@@ -6,6 +6,7 @@
 #include "misc.h"
 #include "keccak.h"
 
+
 void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
 {
     memset(b, 0, sizeof(Buffer));
@@ -16,6 +17,7 @@ void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
             buffer_put(b, *data++);
         }
     }
+    // b->size = KEYAK_BUFFER_SIZE;
 }
 
 void piston_init(Piston * p)
@@ -69,7 +71,6 @@ void piston_inject(Piston * p, Buffer * x, uint8_t crypting)
 void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
         uint8_t unwrapFlag)
 {
-    printf("    start: %d\n", I->offset);
     while(buffer_has_more(I) && w < PISTON_RS)
     {
         uint8_t x = buffer_get(I);
@@ -77,6 +78,5 @@ void piston_crypt(Piston * p, Buffer * I, Buffer * O, uint8_t w,
         p->state[w] = unwrapFlag ? x : p->state[w] ^ x;
         w++;
     }
-    printf("    end: %d\n", I->offset);
     p->state[PISTON_CRYPT_END] ^= w;
 }

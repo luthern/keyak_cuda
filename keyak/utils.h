@@ -6,8 +6,8 @@
 /*  misc/utils for gpu things
  * */
 
-#define HANDLE_ERROR(e)  _HANDLE_ERROR(e, __LINE__)
+#define HANDLE_ERROR(e)  _HANDLE_ERROR(e, __FILE__,__LINE__)
 
-void _HANDLE_ERROR(cudaError_t e, int line);
+void _HANDLE_ERROR(cudaError_t e,const char * file,  int line);
 
 #endif

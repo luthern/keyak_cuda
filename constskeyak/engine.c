@@ -125,21 +125,10 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
 void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 {
     assert(e->phase == EngineFresh);
-    printf("start: %d  end: %d  leftover %d\n",I->offset, I->length, I->length - I->offset);
-    printf("the total i can saturate is %d\n", PISTON_RS * KEYAK_NUM_PISTONS);
-
-    uint32_t start = I->offset;
-
     uint8_t i;
     for (i=0; i < KEYAK_NUM_PISTONS; i++)
     {
-        printf("  piston %d\n", i);
         piston_crypt(&e->pistons[i], I, O, e->Et[i], unwrapFlag);
     }
-
-    assert(I->offset == MIN(start+PISTON_RS * KEYAK_NUM_PISTONS, I->length));
-
     e->phase = buffer_has_more(I) ? EngineCrypted : EngineEndOfCrypt;
 }
-
-
