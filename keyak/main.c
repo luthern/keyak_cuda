@@ -86,8 +86,6 @@ int main(int argc, char * argv[])
     //printf("first %d of cipher: \n",len);
     //dump_hex( sendr.O.buf ,  len);
 
-
-
     printf("hello keyak\n");
 
     return 0;

@@ -10,9 +10,9 @@
 #include "keccak.cu"
 #include "piston.cu"
 
-#if 0
+#if 1
 
-static void dump_state(Engine * e, int piston)
+void dump_state(Engine * e, int piston)
 {
     uint8_t tmp[KEYAK_STATE_SIZE];
 
@@ -74,12 +74,12 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
     piston_spark<<<KEYAK_NUM_PISTONS,1>>>
         (e->p_state, eom, e->p_offsets);
 
-    //printf("spark state 2 : \n");
-    //for (j=0; j < KEYAK_NUM_PISTONS; j++)
-    //{
-    //    printf("piston %d\n", j);
-    //    dump_state(e,j);
-    //}
+/*    printf("spark state 2 : \n");*/
+    /*for (j=0; j < KEYAK_NUM_PISTONS; j++)*/
+    /*{*/
+        /*printf("piston %d\n", j);*/
+        /*dump_state(e,j);*/
+    /*}*/
 
 
     memmove(e->Et, offsets, KEYAK_NUM_PISTONS);
@@ -88,18 +88,37 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
 {
     assert(e->phase == EngineEndOfMessage);
-    engine_spark(e, 1, L);
     uint8_t i;
+/*    printf("get tags state 1: \n");*/
+    /*for (j=0; j < KEYAK_NUM_PISTONS; j++)*/
+    /*{*/
+        /*printf("piston %d\n", j);*/
+        /*dump_state(e,j);*/
+    /*}*/
+    engine_spark(e, 1, L);
+
+  /*  printf("get tags state 2: \n");*/
+    /*for (j=0; j < KEYAK_NUM_PISTONS; j++)*/
+    /*{*/
+        /*printf("piston %d\n", j);*/
+        /*dump_state(e,j);*/
+    /*}*/
+
+
     for (i = 0; i < KEYAK_NUM_PISTONS; i++)
     {
         if (L[i])
         {
             // TODO consider making one copy or making this async
+            assert(L[i] <= PISTON_RS);
             HANDLE_ERROR(
                     cudaMemcpy(T->buf + T->length,
                                 e->p_state + i * KEYAK_STATE_SIZE,
                                 L[i], cudaMemcpyDeviceToHost)
                     );
+            /*printf("copied tag bytes %d:\n",i);*/
+            /*dump_hex(T->buf + T->length, L[i]);*/
+
             T->length += L[i];
         }
     }
@@ -200,8 +219,23 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
     assert(e->phase == EngineFresh);
     //printf("ENGINE_INJECT_COLLECTIVE\n");
 
+    /*printf("collectively injecting %d bytes\n", X->length);*/
+
+    /*dump_hex(X->buf, X->length);*/
+
+    /*printf("COLLECTIVE INPUT STATE :\n");*/
+    /*int j;*/
+    /*for (j=0; j < KEYAK_NUM_PISTONS; j++)*/
+    /*{*/
+        /*[>printf("piston %d\n", j);<]*/
+        /*dump_state(e,j);*/
+    /*}*/
+
+
+
     if (dFlag)
     {
+        /*printf("diversivefying\n");*/
         buffer_put(X,KEYAK_NUM_PISTONS);
         buffer_put(X,0);
     }
@@ -226,22 +260,36 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
     {
         if ( i + PISTON_RA >= X->length)
         {
-            //printf("injecting %d bytes\n", X->length - i);
+            /*printf("injecting %d bytes\n", X->length - i);*/
             piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
                     e->p_tmp, i, X->length - i, 0);
         }
         else
         {
-            //printf("injecting PISTON_RA bytes\n");
+            /*printf("injecting PISTON_RA bytes\n");*/
             piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
                     e->p_tmp, i, PISTON_RA, 0);
             // data dependency
-            // TODO
-            // call spark
+            piston_spark<<<KEYAK_NUM_PISTONS,1>>>
+                (e->p_state, 0, NULL);
+
         }
+
+/*        printf("COLLECTIVE INJECT STATE :\n");*/
+        /*int j;*/
+        /*for (j=0; j < KEYAK_NUM_PISTONS; j++)*/
+        /*{*/
+            /*printf("piston %d\n", j);*/
+            /*dump_state(e,j);*/
+        /*}*/
+
+
 
         // test
     }
+
+
+
 
     e->phase = EngineEndOfMessage;
 }

@@ -38,9 +38,9 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
     
     if (eom)
     {
-        uint8_t offset = offsets[piston];
+        uint8_t offset = offsets == NULL ? 0 : offsets[piston];
         //printf("piston %d offset %d\n",piston,offset);
-        state[stateoffset + PISTON_EOM] = ( offset == 0 ) ? 0xff : offset;
+        state[stateoffset + PISTON_EOM] ^= ( offset == 0 ) ? 0xff : offset;
     }
     PERMUTE(state + stateoffset);
 
