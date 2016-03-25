@@ -147,6 +147,7 @@ void engine_inject(Engine * e, Buffer * A)
     uint32_t amt = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);
     uint8_t i;
 
+    // TODO this should be done in an init somewhere
     HANDLE_ERROR(
             cudaMemcpy(e->p_tmp, A->buf + A->offset, amt, cudaMemcpyHostToDevice)
             );
@@ -323,7 +324,7 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 
     // Copy the output of pistons
     assert(O->length + amt < KEYAK_BUFFER_SIZE);
-    HANDLE_ERROR(cudaMemcpy(O->buf + O->length, e->p_out,
+    HANDLE_ERROR(cudaMemcpyAsync(O->buf + O->length, e->p_out,
                 amt,
                 cudaMemcpyDeviceToHost));
     //printf("cipher text %d:\n",iter++);
