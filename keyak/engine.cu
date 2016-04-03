@@ -297,7 +297,10 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
         // test
     }
 
-
+    if (dFlag)
+    {
+        X->length -= 2;
+    }
 
 
     e->phase = EngineEndOfMessage;
