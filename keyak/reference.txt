@@ -9,7 +9,7 @@
 -8 + 64 = 56
 -9 + 81 = 72
 encrypting 4001 bytes
-10000 sessions time: 1.6531 s
+20000 sessions time: 1.6531 s
 keyak_initx2 time: 0.0038 s
 engine_inject time: 0.3384 s
 engine_crypt time: 0.2634 s
