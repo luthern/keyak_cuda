@@ -19,7 +19,11 @@ void keyak_restart(Keyak * k)
 {
     motorist_restart(&k->motorist);
     k->T.offset = 0;
+    k->T.length= 0;
+    k->O.offset = 0;
+    k->O.length= 0;
     k->SUV.offset = 0;
+    k->SUV.length;
 }
 
 
@@ -80,6 +84,7 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     {
         fprintf(stderr,"authentication failed\n");
         exit(1);
+        //fprintf(stderr, "but going to ignore it to test performance\n");
     }
 
 }
