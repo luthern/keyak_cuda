@@ -28,7 +28,7 @@ void piston_init(Piston * p)
 
 void piston_restart(Piston * p)
 {
-    memset(p->state, 0, KEYAK_STATE_SIZE);
+    // memset(p->state, 0, KEYAK_STATE_SIZE);
 }
 
 __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)

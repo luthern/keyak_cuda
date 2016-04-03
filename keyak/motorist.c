@@ -25,10 +25,10 @@ void motorist_restart(Motorist * m)
     uint8_t i;
     m->phase = MotoristReady;
 
-    for(i=0; i < KEYAK_NUM_PISTONS; i++)
-    {
-        piston_restart(&m->pistons[i]);
-    }
+    //for(i=0; i < KEYAK_NUM_PISTONS; i++)
+    //{
+    //    piston_restart(&m->pistons[i]);
+    //}
 
     engine_restart(&m->engine);
 }
@@ -167,9 +167,6 @@ uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
 
     engine_inject_collective(&m->engine, suv, 1);
     
-    printf("Rs: %d\n", PISTON_RS);
-    printf("Ra: %d\n", PISTON_RA);
-
     if (forgetFlag)
     {
         make_knot(m);

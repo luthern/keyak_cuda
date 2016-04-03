@@ -25,6 +25,9 @@ void timer_accum(struct timer * t );
 
 void motorist_timers_end();
 
-void dump_hex(uint8_t * buf, int len);
+void _dump_hex(uint8_t * buf, int len, int nl);
+
+#define dump_hex(buf,len)   _dump_hex(buf,len,1)
+#define dump_hex2(buf,len)   _dump_hex(buf,len,0)
 
 #endif

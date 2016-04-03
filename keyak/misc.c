@@ -2,11 +2,11 @@
 #include "misc.h"
 #include <string.h>
 
-void dump_hex(uint8_t * buf, int len)
+void _dump_hex(uint8_t * buf, int len, int nl)
 {
     while(len--)
         printf("%02hhx", *buf++);
-    printf("\n");
+    if (nl) printf("\n");
 }
 
 void timer_start(struct timer * t, const char * msg)
@@ -37,5 +37,5 @@ void timer_end(struct timer * t)
                 ((double)t->tstart.tv_sec + 1.0e-9 * (double)t->tstart.tv_nsec));
     }
     t->accum = 0;
-    printf("%s time: %.4f s\n", t->msg, t->total);
+    printf("%s time: %.5f s\n", t->msg, t->total);
 }

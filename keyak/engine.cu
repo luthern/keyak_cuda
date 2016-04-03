@@ -53,6 +53,14 @@ void engine_destroy(Engine * e)
 void engine_restart(Engine * e)
 {
     e->phase = EngineFresh;
+
+    HANDLE_ERROR(cudaMemset(e->p_in, 0, PISTON_RS * KEYAK_NUM_PISTONS ));
+
+    HANDLE_ERROR(cudaMemset(e->p_out, 0, PISTON_RS * KEYAK_NUM_PISTONS ));
+
+    HANDLE_ERROR(cudaMemset(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMemset(e->p_offsets,0,KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMemset(e->p_tmp,0,KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
 }
 
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
@@ -218,7 +226,7 @@ static void dump_hash(Engine * e, int piston)
 void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
 {
     assert(e->phase == EngineFresh);
-    //printf("ENGINE_INJECT_COLLECTIVE\n");
+    /*printf("ENGINE_INJECT_COLLECTIVE\n");*/
 
     /*printf("collectively injecting %d bytes\n", X->length);*/
 
@@ -324,7 +332,7 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 
     // Copy the output of pistons
     assert(O->length + amt < KEYAK_BUFFER_SIZE);
-    HANDLE_ERROR(cudaMemcpyAsync(O->buf + O->length, e->p_out,
+    HANDLE_ERROR(cudaMemcpy(O->buf + O->length, e->p_out,
                 amt,
                 cudaMemcpyDeviceToHost));
     //printf("cipher text %d:\n",iter++);
