@@ -4,7 +4,7 @@ obj = $(src:.c=.o) engine.o utils.o
 name=keyak
 
 CFLAGS= -O3 -Werror
-LDFLAGS= -lcudart -lcudart
+LDFLAGS= -lcudart -lcudart -lcrypto
 
 CC=g++
 CCG=nvcc

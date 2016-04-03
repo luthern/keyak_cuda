@@ -4,65 +4,125 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <openssl/bn.h>
+#include <openssl/err.h>
+
 #include "keyak.h"
 #include "misc.h"
 
-#define NUM_ITERATIONS 1
-//#define NUM_ITERATIONS 100
+static void openssl_die()
+{
+    fprintf(stderr,"error: %s\n",
+            ERR_error_string(ERR_get_error(),NULL) );
+    exit(2);
+}
 
-// vector 1
-const unsigned char key_v1[] = 
-    "\x5a\x4b\x3c\x2d\x1e\x0f\x00\xf1\xe2\xd3\xc4\xb5\xa6\x97\x88\x79";
-const unsigned char nonce_v1[] =
-    "\x6b\x4c\x2d\x0e\xef\xd0\xb1\x92\x72\x53\x34\x15\xf6\xd7\xb8\x99";
-    //"\x64\x4c\x2d\x0e\xef\xd0\xb1\x92\x72\x53\x34\x15\xf6\xd7\xb8\x99";
-const unsigned char AD_v1[] =
-    "\x32\xf3\xb4\x75\x35\xf6";
-const unsigned char plaintext_v1[] = 
-    "\xe4\x65\xe5\x66\xe6\x67\xe7";
-const unsigned char ciphertext_v1[] =
-    "\x20\xfe\xc6\x15\x45\x02\xc4\x77\x6b\x6a\x02\xba\xd7\xf9\xd3\x31\xc9\x6b\x62\x6c\x49\xda\xf2";
-//
+static unsigned int hex2bin(unsigned char ** bin, const unsigned char * hex)
+{
+    int len;
+    BIGNUM * bn = NULL;
+    if(BN_hex2bn(&bn, (char*)hex) == 0)
+    {   openssl_die();    }
 
+    len = BN_num_bytes(bn);
+    *bin = (unsigned char *)malloc(len);
+
+    if(BN_bn2bin(bn, *bin) == 0)
+    {   openssl_die();  }
+    return len;
+}
 
 int main(int argc, char * argv[])
 {
     Keyak sendr;
     Keyak recvr;
-    unsigned char * suv;
-    unsigned char * pt, * metadata;
-    int ptlen, suvlen, noncelen, mlen;
+    unsigned char * key, * nonce = NULL, * key_hex, * nonce_hex = NULL;
+    unsigned char * pt, * metadata = NULL, * metadata_hex = NULL;
+    BIGNUM * key_bn = NULL, * nonce_bn = NULL;
+    char * output;
+    FILE * outputf;
+    int ptlen, keylen, noncelen, mlen, readlen;
+    int iterations = 1;
 
-    suv = (unsigned char * )key_v1;
-    pt = (unsigned char * )plaintext_v1;
-    metadata = (unsigned char * )AD_v1;
+    if (argc < 3 || argc > 9)
+    {
+        fprintf(stderr, "usage: %s <key-hex> <output-file> [-n <nonce-hex>] [-m <metadata-hex>] [-i <iterations>]\n", argv[0]);
+        exit(1);
+    }
 
-    uint8_t nonce[150];
-    memset(nonce,0,sizeof(nonce));
+    key_hex = (unsigned char *)argv[1];
+    output = argv[2];
+    outputf = fopen(output,"w+");
+    if (outputf == NULL)
+    {
+        perror("fopen");
+        exit(1);
+    }
+    
+    ERR_load_crypto_strings();
 
-    suvlen = (sizeof(key_v1)-1);
-    noncelen = sizeof(nonce);
-    ptlen = (sizeof(plaintext_v1)-1);
-    mlen = (sizeof(AD_v1)-1);
-
-    memmove(nonce, nonce_v1, sizeof(nonce_v1)-1);
+    int opt;
+    while ((opt = getopt (argc, argv, "n:m:i:")) != -1)
+    {
+        switch (opt)
+        {
+            case 'n':
+                nonce_hex = (unsigned char *)optarg;
+                break;
+            case 'm':
+                metadata_hex = (unsigned char *)optarg;
+                break;
+            case 'i':
+                iterations = atoi(optarg);
+                break;
+            default:
+                fprintf(stderr,"unrecognized argument -%c", (char)opt);
+                exit(1);
+                break;
+        }
+    }
 
     engine_precompute();
-    // lunar keyak
+
     keyak_init(&sendr);
     keyak_init(&recvr);
 
-    keyak_set_suv(&sendr, suv, suvlen);
-    keyak_set_suv(&recvr, suv, suvlen);
-    keyak_add_nonce(&sendr, nonce, noncelen);
-    keyak_add_nonce(&recvr, nonce, noncelen);
+    keylen = hex2bin(&key,key_hex);
 
-    printf("encrypting %d bytes\n", ptlen);
+    keyak_set_suv(&sendr, key, keylen);
+    keyak_set_suv(&recvr, key, keylen);
+
+    if (nonce_hex != NULL)
+    {
+        noncelen = hex2bin(&nonce,nonce_hex);
+
+        keyak_add_nonce(&sendr, nonce, noncelen);
+        keyak_add_nonce(&recvr, nonce, noncelen);
+    }
+
+    if (metadata_hex != NULL)
+    {
+        mlen = hex2bin(&metadata, metadata_hex);
+    }
+
+    pt = (unsigned char*)malloc(5000);
+    ptlen = read(STDIN_FILENO, pt, 5000);
+    if (ptlen <= 0)
+    {
+        perror("read");
+        goto done;
+    }
+    if (ptlen == 5000)
+    {
+        fprintf(stderr,"cannot encrypt more than 5000 bytes\n");
+        goto done;
+    }
+
     struct timer t, tinit;
     memset(&t, 0, sizeof(struct timer));
     int i;
     timer_start(&t, "10000 sessions");
-    for (i = 0; i < NUM_ITERATIONS; i++)
+    for (i = 0; i < iterations; i++)
     {
         timer_start(&tinit,"keyak_initx2");
 
@@ -82,18 +142,32 @@ int main(int argc, char * argv[])
 
     motorist_timers_end();
     
-    printf("calculated ciphertext:\n");
-    dump_hex2( sendr.O.buf , sendr.O.length );
-    dump_hex( sendr.T.buf, sendr.T.length );
-    printf("expected ciphertext:\n");
-    dump_hex((uint8_t*)ciphertext_v1, sizeof(ciphertext_v1)-1);
+    if (write(fileno(outputf),sendr.O.buf,sendr.O.length) == -1)
+    {
+        perror("write");
+        goto done;
+    }
+    if (write(fileno(outputf),sendr.T.buf,sendr.T.length) == -1)
+    {
+        perror("write");
+        goto done;
+    }
+    fflush(outputf);
 
-
-    //int len = sendr.O.length;
-    //printf("first %d of cipher: \n",len);
-    //dump_hex( sendr.O.buf ,  len);
-
-    printf("hello keyak\n");
+done:
+    free(pt);
+    if (metadata != NULL) 
+    {
+        free(metadata);
+    }
+   
+    if (nonce != NULL) 
+    {
+        free(nonce);
+    }
+    free(key);
+    fclose(outputf);
+    ERR_free_strings();
 
     return 0;
 }

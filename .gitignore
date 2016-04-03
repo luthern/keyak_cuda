@@ -10,3 +10,6 @@ tmp/
 
 keyak/keyak
 keyak/keyak_ref
+
+# ciphertext
+*.data
