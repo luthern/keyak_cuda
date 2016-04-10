@@ -57,16 +57,11 @@ void piston_get_tag(Piston * p, Buffer * T, uint32_t l)
 
 // make consecutive copies of memory
 // for each piston
-__global__ void dup_for_pistons(uint8_t * mem, size_t size, uint8_t dFlag)
+__global__ void diversify_pistons(uint8_t * mem, size_t size, uint8_t dFlag)
 {
     if (blockIdx.x == 0 && threadIdx.x > 0 && threadIdx.x < KEYAK_NUM_PISTONS)
     {
-        memcpy(mem + (KEYAK_BUFFER_SIZE * threadIdx.x),
-                                mem, size);
-        if (dFlag)
-        {
-            *(mem + (KEYAK_BUFFER_SIZE * threadIdx.x) + size - 1) = threadIdx.x;
-        }
+        *(mem + (KEYAK_BUFFER_SIZE * threadIdx.x) + size - 1) = threadIdx.x;
     }
 
 }
