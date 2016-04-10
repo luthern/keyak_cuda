@@ -40,11 +40,13 @@ void dump_hex_cuda(uint8_t * buf, uint32_t size)
 // merge 2 cpu buffers and make 1 copy to GPU
 uint8_t * coalesce_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1, uint8_t * buf2, size_t size2)
 {
+
+    /*printf("s1: %ld    s2: %ld\n",size1,size2);*/
     assert( size1 + size2 <= sizeof(e->coal1));
 
     // double buffering
-    uint8_t * gpubufs[2] = {e->coal1_gpu, e->coal1_gpu};
-    uint8_t * cpubufs[2] = {e->coal1, e->coal1};
+    uint8_t * gpubufs[2] = {e->coal1_gpu, e->coal2_gpu};
+    uint8_t * cpubufs[2] = {e->coal1, e->coal2};
     uint8_t * gpubuf = gpubufs[ bufsel % 2];
     uint8_t * cpubuf = cpubufs[ bufsel % 2];
 
