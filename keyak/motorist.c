@@ -113,23 +113,41 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
     if (!buffer_has_more(I) && !buffer_has_more(A))
     {
         timer_start(&tinject, "engine_inject");
-        engine_inject(&m->engine,A);
+        engine_inject(&m->engine,NULL,0,0);
         timer_accum(&tinject);
     }
 
-    int iter = 0 ;
+
+    int isize = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
+    int asize = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);
+
+    uint8_t * block = coalesce_gpu(&m->engine, I->buf + I->offset, isize, A->buf + A->offset, asize);
 
     // TODO "double buffer" this
     while(buffer_has_more(I))
     {
         timer_start(&tcrypt, "engine_crypt");
-        engine_crypt(&m->engine, I, O, unwrapFlag);
+
+        engine_crypt(&m->engine, block, O, unwrapFlag, isize);
+
+        I->offset += isize;
+        m->engine.phase = I->offset < I->length ? EngineCrypted : EngineEndOfCrypt;
 
         timer_accum(&tcrypt);
 
         timer_start(&tinject, "engine_inject");
-        engine_inject(&m->engine,A);
+
+        engine_inject(&m->engine,block + isize, (A->offset + asize) < A->length,asize);
+        A->offset += asize;
+
         timer_accum(&tinject);
+
+        if (buffer_has_more(I))
+        {
+            isize = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
+            asize = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);
+            block = coalesce_gpu(&m->engine, I->buf + I->offset, isize, A->buf + A->offset, asize);
+        }
 
         /*printf("CRYPT STATE %d:\n", iter++);*/
         /*int j;*/
@@ -138,16 +156,17 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
             /*printf("piston %d\n", j);*/
             /*dump_state(&m->engine,j);*/
         /*}*/
-
-
-
     }
 
     while(buffer_has_more(A))
     {
+        A->offset += asize;
+        asize = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);
+        block = coalesce_gpu(&m->engine, NULL, 0, A->buf + A->offset, asize);
+
         timer_start(&tinject, "engine_inject");
         /*printf("theres more A\n");*/
-        engine_inject(&m->engine,A);
+        engine_inject(&m->engine, block, (A->offset + asize) < A->length, asize);
         timer_accum(&tinject);
     }
 

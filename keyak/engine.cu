@@ -21,8 +21,39 @@ void dump_state(Engine * e, int piston)
     dump_hex(tmp, sizeof(tmp));
 }
 
+void dump_hex_cuda(uint8_t * buf, uint32_t size)
+{
+    char tbuf[2000];
+    assert( size <= sizeof(tbuf));
+    HANDLE_ERROR(cudaMemcpy(tbuf, buf, size, cudaMemcpyDeviceToHost));
+    int i;
+    for(i = 0; i < size; i++)
+    {
+        printf("%02hhx", tbuf[i]);
+    }
+    printf("\n");
+
+}
+
 #endif
 
+// merge 2 cpu buffers and make 1 copy to GPU
+uint8_t * coalesce_gpu(Engine * e, uint8_t * buf1, size_t size1, uint8_t * buf2, size_t size2)
+{
+    assert( size1 + size2 <= sizeof(e->coal1));
+
+    if (size1)
+    {
+        memmove(e->coal1, buf1, size1);
+    }
+    if (size2)
+    {
+        memmove(e->coal1 + size1, buf2, size2);
+    }
+
+    HANDLE_ERROR(cudaMemcpyAsync( e->coal1_gpu, e->coal1, size1 + size2, cudaMemcpyHostToDevice));
+    return e->coal1_gpu;
+}
 
 void engine_init(Engine * e, Piston * pistons)
 {
@@ -37,6 +68,9 @@ void engine_init(Engine * e, Piston * pistons)
     HANDLE_ERROR(cudaMalloc(&e->p_state, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&e->p_tmp, KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&e->p_offsets, KEYAK_NUM_PISTONS ));
+    
+    HANDLE_ERROR(cudaMalloc(&e->coal1_gpu, sizeof(e->coal1)));
+    HANDLE_ERROR(cudaMalloc(&e->coal2_gpu, sizeof(e->coal2)));
 
     HANDLE_ERROR(cudaMemset(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMemset(e->p_offsets,0,KEYAK_NUM_PISTONS ));
@@ -138,7 +172,7 @@ void engine_precompute()
     memset(offsets_zero, 0, sizeof(offsets_zero));
 }
 
-void engine_inject(Engine * e, Buffer * A)
+void engine_inject(Engine * e, uint8_t * A, uint8_t isLeftovers,uint32_t amt)
 {
     //printf("ENGINE_INJECT\n");
     assert(
@@ -151,13 +185,11 @@ void engine_inject(Engine * e, Buffer * A)
             e->phase == EngineEndOfCrypt
             );
 
-    uint32_t amt = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);
-    uint8_t i;
 
     // TODO this should be done in an init somewhere
-    HANDLE_ERROR(
-            cudaMemcpyAsync(e->p_tmp, A->buf + A->offset, amt, cudaMemcpyHostToDevice)
-            );
+    /*HANDLE_ERROR(*/
+            /*cudaMemcpyAsync(e->p_tmp, A->buf + A->offset, amt, cudaMemcpyHostToDevice)*/
+            /*);*/
 
     //printf("injecting %d bytes\n", amt);
     
@@ -170,9 +202,11 @@ void engine_inject(Engine * e, Buffer * A)
     //}
 
 
-    piston_inject_seq<<<KEYAK_NUM_PISTONS, PISTON_RA>>>
-        (e->p_state, e->p_tmp, 0, amt, cryptingFlag);
-    A->offset += amt;
+    if (amt)
+    {
+        piston_inject_seq<<<KEYAK_NUM_PISTONS, PISTON_RA>>>
+        (e->p_state, A, 0, amt, cryptingFlag);
+    }
 
 //    printf("inject state 2 : \n");
 //    for (j=0; j < KEYAK_NUM_PISTONS; j++)
@@ -181,7 +215,7 @@ void engine_inject(Engine * e, Buffer * A)
 //        dump_state(e,j);
 //    }
 
-    if (e->phase == EngineCrypted || buffer_has_more(A))
+    if (e->phase == EngineCrypted || isLeftovers)
     {
         engine_spark(e,0, offsets_zero);
         e->phase = EngineFresh;
@@ -311,12 +345,14 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
     e->phase = EngineEndOfMessage;
 }
 
-//static int iter =0 ;
-void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
+// I is a GPU owned buffer
+// O is a CPU owned buffer
+void engine_crypt(Engine * e, uint8_t * I, Buffer * O, uint8_t unwrapFlag, uint32_t amt)
 {
 
     assert(e->phase == EngineFresh);
-    uint32_t amt = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
+
+    //uint32_t amt = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
 
     //printf("state: \n");
     //int j;
@@ -331,13 +367,14 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 
     // TODO consider copying more than 1 block
     // Copy block of input to GPU
-    HANDLE_ERROR(cudaMemcpyAsync(e->p_in,I->buf + I->offset,
-                amt,
-                cudaMemcpyHostToDevice));
+    //HANDLE_ERROR(cudaMemcpyAsync(e->p_in,I->buf + I->offset,
+    //            amt,
+    //            cudaMemcpyHostToDevice));
     
     // TODO is RISTON_RS i.e. 1-1 the best ratio here?
+
     piston_crypt<<<KEYAK_NUM_PISTONS,PISTON_RS>>>
-        (e->p_in,e->p_out,e->p_state,amt, unwrapFlag);
+        (I,e->p_out,e->p_state,amt, unwrapFlag);
 
     // Copy the output of pistons
     assert(O->length + amt < KEYAK_BUFFER_SIZE);
@@ -348,9 +385,9 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
     //dump_hex(O->buf + O->length, amt);
 
     O->length += amt;
-    I->offset += amt;
 
-    e->phase = buffer_has_more(I) ? EngineCrypted : EngineEndOfCrypt;
+    // TODO this in motorist
+    //e->phase = amt == PISTON_RS * KEYAK_NUM_PISTONS ? EngineCrypted : EngineEndOfCrypt;
 
 }
 
