@@ -67,7 +67,6 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
     //printf("ENGINE_SPARK\n");
 
-    // TODO pass offsets array
     cudaMemcpyAsync(e->p_offsets, offsets, KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice);
 
     //printf("spark state 1 : \n");
@@ -336,6 +335,7 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
                 amt,
                 cudaMemcpyHostToDevice));
     
+    // TODO is RISTON_RS i.e. 1-1 the best ratio here?
     piston_crypt<<<KEYAK_NUM_PISTONS,PISTON_RS>>>
         (e->p_in,e->p_out,e->p_state,amt, unwrapFlag);
 

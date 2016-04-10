@@ -94,6 +94,7 @@ struct timer tinject;
 struct timer tcrypt;
 struct timer tknot;
 struct timer ttag;
+struct timer starttag;
 
 void motorist_timers_end()
 {
@@ -101,6 +102,7 @@ void motorist_timers_end()
     timer_end(&tcrypt);
     timer_end(&tknot);
     timer_end(&ttag);
+    timer_end(&starttag);
 }
 
 extern void dump_state(Engine * e, int piston);
@@ -117,6 +119,7 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
 
     int iter = 0 ;
 
+    // TODO "double buffer" this
     while(buffer_has_more(I))
     {
         timer_start(&tcrypt, "engine_crypt");
@@ -163,6 +166,7 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
                     Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag)
 {
+    timer_start(&starttag,"start_engine");
     assert(m->phase == MotoristReady);
 
     engine_inject_collective(&m->engine, suv, 1);
@@ -178,6 +182,7 @@ uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
     {
         m->phase = MotoristRiding;
     }
+    timer_accum(&starttag);
     return r;
 }
 
