@@ -116,12 +116,13 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
         engine_inject(&m->engine,NULL,0,0);
         timer_accum(&tinject);
     }
+    uint8_t bufsel = 0;
 
 
     int isize = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
     int asize = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);
 
-    uint8_t * block = coalesce_gpu(&m->engine, I->buf + I->offset, isize, A->buf + A->offset, asize);
+    uint8_t * block = coalesce_gpu(&m->engine, bufsel, I->buf + I->offset, isize, A->buf + A->offset, asize);
 
     // TODO "double buffer" this
     while(buffer_has_more(I))
@@ -144,9 +145,10 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
 
         if (buffer_has_more(I))
         {
+            bufsel++;
             isize = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);
             asize = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);
-            block = coalesce_gpu(&m->engine, I->buf + I->offset, isize, A->buf + A->offset, asize);
+            block = coalesce_gpu(&m->engine, bufsel, I->buf + I->offset, isize, A->buf + A->offset, asize);
         }
 
         /*printf("CRYPT STATE %d:\n", iter++);*/
@@ -162,7 +164,8 @@ void motorist_wrap(Motorist * m, Buffer * I, Buffer * O, Buffer * A,
     {
         A->offset += asize;
         asize = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);
-        block = coalesce_gpu(&m->engine, NULL, 0, A->buf + A->offset, asize);
+        bufsel++;
+        block = coalesce_gpu(&m->engine, bufsel,NULL, 0, A->buf + A->offset, asize);
 
         timer_start(&tinject, "engine_inject");
         /*printf("theres more A\n");*/

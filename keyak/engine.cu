@@ -38,21 +38,27 @@ void dump_hex_cuda(uint8_t * buf, uint32_t size)
 #endif
 
 // merge 2 cpu buffers and make 1 copy to GPU
-uint8_t * coalesce_gpu(Engine * e, uint8_t * buf1, size_t size1, uint8_t * buf2, size_t size2)
+uint8_t * coalesce_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1, uint8_t * buf2, size_t size2)
 {
     assert( size1 + size2 <= sizeof(e->coal1));
 
+    // double buffering
+    uint8_t * gpubufs[2] = {e->coal1_gpu, e->coal1_gpu};
+    uint8_t * cpubufs[2] = {e->coal1, e->coal1};
+    uint8_t * gpubuf = gpubufs[ bufsel % 2];
+    uint8_t * cpubuf = cpubufs[ bufsel % 2];
+
     if (size1)
     {
-        memmove(e->coal1, buf1, size1);
+        memmove(cpubuf, buf1, size1);
     }
     if (size2)
     {
-        memmove(e->coal1 + size1, buf2, size2);
+        memmove(cpubuf + size1, buf2, size2);
     }
 
-    HANDLE_ERROR(cudaMemcpyAsync( e->coal1_gpu, e->coal1, size1 + size2, cudaMemcpyHostToDevice));
-    return e->coal1_gpu;
+    HANDLE_ERROR(cudaMemcpyAsync( gpubuf, cpubuf, size1 + size2, cudaMemcpyHostToDevice));
+    return gpubuf;
 }
 
 void engine_init(Engine * e, Piston * pistons)

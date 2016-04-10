@@ -37,7 +37,7 @@ typedef struct _Engine
 } Engine;
 
 /**** optimizations */
-uint8_t * coalesce_gpu(Engine * e, uint8_t * buf1, size_t size1, uint8_t * buf2, size_t size2);
+uint8_t * coalesce_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1, uint8_t * buf2, size_t size2);
 void dump_hex_cuda(uint8_t * buf, uint32_t size);
 /****               */
 
