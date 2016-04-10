@@ -68,7 +68,7 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
     //printf("ENGINE_SPARK\n");
 
     // TODO pass offsets array
-    cudaMemcpy(e->p_offsets, offsets, KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(e->p_offsets, offsets, KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice);
 
     //printf("spark state 1 : \n");
     //int j;
@@ -120,7 +120,7 @@ void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
             // TODO consider making one copy or making this async
             assert(L[i] <= PISTON_RS);
             HANDLE_ERROR(
-                    cudaMemcpy(T->buf + T->length,
+                    cudaMemcpyAsync(T->buf + T->length,
                                 e->p_state + i * KEYAK_STATE_SIZE,
                                 L[i], cudaMemcpyDeviceToHost)
                     );
@@ -157,7 +157,7 @@ void engine_inject(Engine * e, Buffer * A)
 
     // TODO this should be done in an init somewhere
     HANDLE_ERROR(
-            cudaMemcpy(e->p_tmp, A->buf + A->offset, amt, cudaMemcpyHostToDevice)
+            cudaMemcpyAsync(e->p_tmp, A->buf + A->offset, amt, cudaMemcpyHostToDevice)
             );
 
     //printf("injecting %d bytes\n", amt);
@@ -240,8 +240,6 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
         /*dump_state(e,j);*/
     /*}*/
 
-
-
     if (dFlag)
     {
         /*printf("diversivefying\n");*/
@@ -249,12 +247,11 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
         buffer_put(X,0);
     }
 
-
     // TODO should support variable length
     assert(X->length < KEYAK_BUFFER_SIZE);
 
     // copy collective to gpu
-    HANDLE_ERROR(cudaMemcpy(e->p_tmp,X->buf,
+    HANDLE_ERROR(cudaMemcpyAsync(e->p_tmp,X->buf,
                 X->length,
                 cudaMemcpyHostToDevice));
 
@@ -335,7 +332,7 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 
     // TODO consider copying more than 1 block
     // Copy block of input to GPU
-    HANDLE_ERROR(cudaMemcpy(e->p_in,I->buf + I->offset,
+    HANDLE_ERROR(cudaMemcpyAsync(e->p_in,I->buf + I->offset,
                 amt,
                 cudaMemcpyHostToDevice));
     
@@ -344,7 +341,7 @@ void engine_crypt(Engine * e, Buffer * I, Buffer * O, uint8_t unwrapFlag)
 
     // Copy the output of pistons
     assert(O->length + amt < KEYAK_BUFFER_SIZE);
-    HANDLE_ERROR(cudaMemcpy(O->buf + O->length, e->p_out,
+    HANDLE_ERROR(cudaMemcpyAsync(O->buf + O->length, e->p_out,
                 amt,
                 cudaMemcpyDeviceToHost));
     //printf("cipher text %d:\n",iter++);
