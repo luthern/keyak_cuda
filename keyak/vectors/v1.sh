@@ -11,14 +11,31 @@ metadata=32f3b47535f6
 pt=e465e566e667e7
 ciphertext=20fec6154502c4776b6a02bad7f9d331c96b626c49daf2
 
-printf $pt | xxd -r -p | ../keyak $key ciphertext -n $nonce -m $metadata
+printf $pt | xxd -r -p | ../keyak $key ciphertext -n $nonce -m $metadata  > /dev/null
 
 calc_ciphertext=$(cat ciphertext | xxd -p ciphertext)
 
 if [[ "$ciphertext" = "$calc_ciphertext" ]] ;
 then
 
-    echo "Success"
+    echo "1 iteration Success"
+
+else
+
+    echo "FAIL"
+    echo " $ciphertext != $calc_ciphertext "
+
+fi
+
+
+printf $pt | xxd -r -p | ../keyak $key ciphertext -n $nonce -m $metadata -i 100 > /dev/null
+
+calc_ciphertext=$(cat ciphertext | xxd -p ciphertext)
+
+if [[ "$ciphertext" = "$calc_ciphertext" ]] ;
+then
+
+    echo "100 iteration Success"
 
 else
 
