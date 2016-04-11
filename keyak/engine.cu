@@ -57,11 +57,12 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
             pkt->input_offset += tocopy;
             if (pkt->input_offset == pkt->input_size)
             {
+                i++;
                 break;
             }
         }
     }
-    total_blocks = i+1;
+    total_blocks = i;
 
     if (pkt->metadata_offset < pkt->metadata_size)
     {
@@ -75,13 +76,14 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
             pkt->metadata_offset += tocopy;
             if (pkt->metadata_offset == pkt->metadata_size)
             {
+                i++;
                 break;
             }
         }
     }
     if (i > total_blocks)
     {
-        total_blocks = i+1;
+        total_blocks = i;
     }
     // sanity check
     assert(total_blocks <= KEYAK_GPU_BUF_SLOTS);
