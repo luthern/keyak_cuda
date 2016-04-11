@@ -12,13 +12,8 @@
 void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
 {
     memset(b, 0, sizeof(Buffer));
-    if (data != NULL)
-    {
-        while(len--)
-        {
-            buffer_put(b, *data++);
-        }
-    }
+    memmove(b->buf, data, len);
+    b->length = len;
 }
 
 __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
@@ -35,16 +30,6 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
 
 }
 
-// make consecutive copies of memory
-// for each piston
-__global__ void diversify_pistons(uint8_t * mem, size_t size, uint8_t dFlag)
-{
-    if (blockIdx.x == 0 && threadIdx.x > 0 && threadIdx.x < KEYAK_NUM_PISTONS)
-    {
-        *(mem + (KEYAK_BUFFER_SIZE * threadIdx.x) + size - 1) = threadIdx.x;
-    }
-
-}
 
 // size is the size of entire meta data block for pistons to absorb
 // size <= PISTON_RA * KEYAK_NUM_PISTONS
@@ -83,10 +68,9 @@ __global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset,
     }
 }
 
-
-// size is size of each data to copy/inject to piston state
-// size <= PISTON_RA
-// offset is the offset from each block in x to pull from
+// Copies from same buffer to all pistons states
+// Allows diversify flag.
+// size must not be bigger then RA
 __global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t offset, uint8_t size, uint8_t dFlag)
 {
     uint8_t piston = blockIdx.x;
