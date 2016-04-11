@@ -92,9 +92,7 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
 
     motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
 
-    buffer_init(&k->I,data, datalen);
     buffer_init(&k->O,NULL, 0);
-    buffer_init(&k->A,metadata, metalen);
     buffer_init(&tagbuf, tag, taglen);
     motorist_wrap(&k->motorist,&pkt,&k->O, &tagbuf, 1, 0);
 

@@ -343,17 +343,18 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
 
     // Duplicate for each piston but only make gpu2gpu copies
     // Async because no data dependency for any of them
-    uint8_t j;
-    for (j=1; j < KEYAK_NUM_PISTONS; j++)
-    {
-        HANDLE_ERROR(cudaMemcpyAsync(e->p_tmp + KEYAK_BUFFER_SIZE * j,e->p_tmp,
-                    X->length,
-                    cudaMemcpyDeviceToDevice));
-    }
-    if (dFlag)
-    {
-        diversify_pistons<<<1,KEYAK_NUM_PISTONS>>>(e->p_tmp, X->length,dFlag);
-    }
+    // TODO copy exponential sizes
+    /*uint8_t j;*/
+    /*for (j=1; j < KEYAK_NUM_PISTONS; j++)*/
+    /*{*/
+        /*HANDLE_ERROR(cudaMemcpyAsync(e->p_tmp + KEYAK_BUFFER_SIZE * j,e->p_tmp,*/
+                    /*X->length,*/
+                    /*cudaMemcpyDeviceToDevice));*/
+    /*}*/
+    /*if (dFlag)*/
+    /*{*/
+        /*diversify_pistons<<<1,KEYAK_NUM_PISTONS>>>(e->p_tmp, X->length,dFlag);*/
+    /*}*/
 
 
     uint32_t i;
@@ -363,7 +364,7 @@ void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag)
         {
             /*printf("injecting %d bytes\n", X->length - i);*/
             piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
-                    e->p_tmp, i, X->length - i, 0);
+                    e->p_tmp, i, X->length - i, dFlag);
         }
         else
         {
