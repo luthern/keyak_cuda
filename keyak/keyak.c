@@ -100,7 +100,6 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     {
         fprintf(stderr,"authentication failed\n");
         exit(1);
-        //fprintf(stderr, "but going to ignore it to test performance\n");
     }
 
 }

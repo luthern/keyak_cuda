@@ -25,11 +25,6 @@ void motorist_restart(Motorist * m)
     uint8_t i;
     m->phase = MotoristReady;
 
-    //for(i=0; i < KEYAK_NUM_PISTONS; i++)
-    //{
-    //    piston_restart(&m->pistons[i]);
-    //}
-
     engine_restart(&m->engine);
 }
 
@@ -131,30 +126,13 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
         block = coalesce_gpu(&m->engine, pkt);
         uint8_t i = 0;
 
-        /*int k;*/
-        /*for (k=0; k < KEYAK_GPU_BUF_SLOTS; k++)*/
-        /*{*/
-            /*printf("\n\n");*/
-            /*dump_hex_cuda(block +KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * k , KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);*/
-            /*printf("\n\n");*/
-        /*}*/
-
-        // TODO copy more than 1 block over at a time
-        // while(buffer_has_more(I))
         while(pkt->rs_sizes[i] && i < KEYAK_GPU_BUF_SLOTS)
         {
 
-            /*bufsel++;*/
-            /*isize = MIN(PISTON_RS*KEYAK_NUM_PISTONS, I->length - I->offset);*/
-            /*asize = MIN(PISTON_RA*KEYAK_NUM_PISTONS, A->length - A->offset);*/
-            /*block = coalesce_gpu(&m->engine, bufsel, I->buf + I->offset, isize, A->buf + A->offset, asize);*/
             offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
 
             timer_start(&tcrypt, "engine_crypt");
 
-            /*block = to_gpu(&m->engine, bufsel++, m->input_buf + offset,*/
-                           /*m->input_rs_size[i] + m->input_ra_size[i] );*/
-            /*printf("crypting %d bytes\n", pkt->rs_sizes[i]);*/
             engine_crypt(&m->engine, block + offset, O, unwrapFlag, pkt->rs_sizes[i]);
 
             rs_offset += pkt->rs_sizes[i];
@@ -164,7 +142,6 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
             timer_start(&tinject, "engine_inject");
 
-            /*printf("injecting %d bytes\n", pkt->ra_sizes[i]);*/
             engine_inject(&m->engine,block + offset + PISTON_RS * KEYAK_NUM_PISTONS, 
                     (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size, pkt->ra_sizes[i]);
             ra_offset += pkt->ra_sizes[i];
@@ -173,13 +150,6 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
             timer_accum(&tinject);
 
             i++;
-            /*printf("CRYPT STATE %d:\n", iter++);*/
-            /*int j;*/
-            /*for (j=0; j < KEYAK_NUM_PISTONS; j++)*/
-            /*{*/
-                /*printf("piston %d\n", j);*/
-                /*dump_state(&m->engine,j);*/
-            /*}*/
         }
 
     }
@@ -196,7 +166,6 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
             offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
 
             timer_start(&tinject, "engine_inject");
-            /*printf("theres more A\n");*/
 
             engine_inject(&m->engine, block + offset + PISTON_RS * KEYAK_NUM_PISTONS,
                     (ra_offset + m->input_ra_size[i]) < pkt->metadata_size, m->input_ra_size[i]);
@@ -210,7 +179,6 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
     {
         timer_start(&tknot, "make_knot");
-        /*printf("make_knot\n");*/
         make_knot(m);
         timer_accum(&tknot);
     }
