@@ -23,7 +23,7 @@ void dump_state(Engine * e, int piston)
 
 void dump_hex_cuda(uint8_t * buf, uint32_t size)
 {
-    char tbuf[2000];
+    char tbuf[20000];
     assert( size <= sizeof(tbuf));
     HANDLE_ERROR(cudaMemcpy(tbuf, buf, size, cudaMemcpyDeviceToHost));
     int i;
@@ -37,30 +37,75 @@ void dump_hex_cuda(uint8_t * buf, uint32_t size)
 
 #endif
 
-// merge 2 cpu buffers and make 1 copy to GPU
-uint8_t * coalesce_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1, uint8_t * buf2, size_t size2)
+// move memory to gpu from cpu
+uint8_t * to_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1)
 {
 
-    /*printf("s1: %ld    s2: %ld\n",size1,size2);*/
-    assert( size1 + size2 <= sizeof(e->coal1));
+    /*printf("s1: %ld    s2: %d\n",size1,0);*/
+    assert( size1 <= sizeof(e->coal1));
 
     // double buffering
     uint8_t * gpubufs[2] = {e->coal1_gpu, e->coal2_gpu};
-    uint8_t * cpubufs[2] = {e->coal1, e->coal2};
     uint8_t * gpubuf = gpubufs[ bufsel % 2];
-    uint8_t * cpubuf = cpubufs[ bufsel % 2];
 
-    if (size1)
-    {
-        memmove(cpubuf, buf1, size1);
-    }
-    if (size2)
-    {
-        memmove(cpubuf + size1, buf2, size2);
-    }
-
-    HANDLE_ERROR(cudaMemcpyAsync( gpubuf, cpubuf, size1 + size2, cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpyAsync( gpubuf, buf1, size1, cudaMemcpyHostToDevice));
     return gpubuf;
+}
+
+// interleave 2 cpu buffers and make 1 copy to GPU
+uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
+{
+    int total_blocks;
+    int i,j=0,l=0;
+
+    memset(pkt->rs_sizes,0,sizeof(pkt->rs_sizes[0])*(KEYAK_GPU_BUF_SLOTS));
+    memset(pkt->ra_sizes,0,sizeof(pkt->ra_sizes[0])*(KEYAK_GPU_BUF_SLOTS));
+
+    if (pkt->input_offset < pkt->input_size)
+    {
+        for (i=0; i < KEYAK_GPU_BUF_SLOTS; i++)
+        {
+            uint32_t tocopy = MIN(PISTON_RS * KEYAK_NUM_PISTONS, pkt->input_size - pkt->input_offset);
+            memmove(pkt->merged + j, pkt->input + pkt->input_offset, tocopy);
+            pkt->rs_sizes[l++] = tocopy;
+            j += (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);
+            pkt->input_offset += tocopy;
+            if (pkt->input_offset == pkt->input_size)
+            {
+                break;
+            }
+        }
+    }
+    total_blocks = i+1;
+
+    if (pkt->metadata_offset < pkt->metadata_size)
+    {
+        j=0,l=0;
+        for (i=0; i < KEYAK_GPU_BUF_SLOTS; i++)
+        {
+            uint32_t tocopy = MIN(PISTON_RA * KEYAK_NUM_PISTONS, pkt->metadata_size - pkt->metadata_offset);
+            memmove(pkt->merged + j + PISTON_RS * KEYAK_NUM_PISTONS, pkt->metadata + pkt->metadata_offset, tocopy);
+            pkt->ra_sizes[l++] = tocopy;
+            j += (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);
+            pkt->metadata_offset += tocopy;
+            if (pkt->metadata_offset == pkt->metadata_size)
+            {
+                break;
+            }
+        }
+    }
+    if (i > total_blocks)
+    {
+        total_blocks = i+1;
+    }
+    // sanity check
+    assert(total_blocks <= KEYAK_GPU_BUF_SLOTS);
+    
+    //printf("copying over %d blocks\n", total_blocks);
+    HANDLE_ERROR(cudaMemcpyAsync( e->coal1_gpu, pkt->merged,
+                total_blocks * KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice));
+
+    return e->coal1_gpu;
 }
 
 void engine_init(Engine * e, Piston * pistons)

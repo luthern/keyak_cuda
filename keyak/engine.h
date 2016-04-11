@@ -26,8 +26,8 @@ typedef struct _Engine
     uint8_t * p_offsets;
 
 
-    uint8_t coal1[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS];
-    uint8_t coal2[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS];
+    uint8_t coal1[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS];
+    uint8_t coal2[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS];
 
     uint8_t * coal1_gpu;
     uint8_t * coal2_gpu;
@@ -37,8 +37,23 @@ typedef struct _Engine
 } Engine;
 
 /**** optimizations */
-uint8_t * coalesce_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1, uint8_t * buf2, size_t size2);
+typedef struct _Packet
+{
+    uint8_t * input;
+    uint8_t * metadata;
+    size_t  input_size;
+    size_t  input_offset;
+    size_t  metadata_size;
+    size_t  metadata_offset;
+    uint8_t merged[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS];
+    uint32_t rs_sizes[KEYAK_GPU_BUF_SLOTS];
+    uint32_t ra_sizes[KEYAK_GPU_BUF_SLOTS];
+} Packet;
+
+uint8_t * coalesce_gpu(Engine * e, Packet * pkt);
+uint8_t * to_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1);
 void dump_hex_cuda(uint8_t * buf, uint32_t size);
+
 /****               */
 
 void engine_init(Engine * e, Piston * pistons);
