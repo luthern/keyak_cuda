@@ -37,20 +37,6 @@ void dump_hex_cuda(uint8_t * buf, uint32_t size)
 
 #endif
 
-// move memory to gpu from cpu
-uint8_t * to_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1)
-{
-
-    assert( size1 <= sizeof(e->coal1));
-
-    // double buffering
-    uint8_t * gpubufs[2] = {e->coal1_gpu, e->coal2_gpu};
-    uint8_t * gpubuf = gpubufs[ bufsel % 2];
-
-    HANDLE_ERROR(cudaMemcpyAsync( gpubuf, buf1, size1, cudaMemcpyHostToDevice));
-    return gpubuf;
-}
-
 // interleave 2 cpu buffers and make 1 copy to GPU
 uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
 {
@@ -101,16 +87,15 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
     assert(total_blocks <= KEYAK_GPU_BUF_SLOTS);
     
     //printf("copying over %d blocks\n", total_blocks);
-    HANDLE_ERROR(cudaMemcpyAsync( e->coal1_gpu, pkt->merged,
+    HANDLE_ERROR(cudaMemcpyAsync( e->p_coalesced, pkt->merged,
                 total_blocks * KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice));
 
-    return e->coal1_gpu;
+    return e->p_coalesced;
 }
 
-void engine_init(Engine * e, Piston * pistons)
+void engine_init(Engine * e)
 {
     memset(e,0,sizeof(Engine));
-    e->pistons = pistons;
     e->phase = EngineFresh;
 
     // TODO consider making these all one contiguous block or even different memories
@@ -121,8 +106,7 @@ void engine_init(Engine * e, Piston * pistons)
     HANDLE_ERROR(cudaMalloc(&e->p_tmp, KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&e->p_offsets, KEYAK_NUM_PISTONS ));
     
-    HANDLE_ERROR(cudaMalloc(&e->coal1_gpu, sizeof(e->coal1)));
-    HANDLE_ERROR(cudaMalloc(&e->coal2_gpu, sizeof(e->coal2)));
+    HANDLE_ERROR(cudaMalloc(&e->p_coalesced, KEYAK_NUM_PISTONS * KEYAK_STATE_SIZE * KEYAK_GPU_BUF_SLOTS));
 
     HANDLE_ERROR(cudaMemset(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMemset(e->p_offsets,0,KEYAK_NUM_PISTONS ));

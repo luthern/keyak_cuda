@@ -21,15 +21,6 @@ void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
     }
 }
 
-void piston_init(Piston * p)
-{
-    memset(p->state, 0, KEYAK_STATE_SIZE);
-}
-
-void piston_restart(Piston * p)
-{
-}
-
 __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
 {
     uint8_t piston = blockIdx.x;
@@ -42,15 +33,6 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
     }
     PERMUTE(state + stateoffset);
 
-}
-void piston_get_tag(Piston * p, Buffer * T, uint32_t l)
-{
-    assert(l <= PISTON_RS);
-    int i;
-    for (i=0; i < l; i++)
-    {
-        buffer_put(T, p->state[i]);
-    }
 }
 
 // make consecutive copies of memory

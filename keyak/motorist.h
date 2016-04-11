@@ -16,7 +16,6 @@ typedef struct _Motorist
 {
     MotoristState phase;
     Engine engine;
-    Piston pistons[KEYAK_NUM_PISTONS];
 
 #define GPU_NUM_INPUTS  8
     // gpu

@@ -13,11 +13,7 @@ void motorist_init(Motorist * m)
 
     m->phase = MotoristReady;
 
-    for (i = 0; i < KEYAK_NUM_PISTONS; i++)
-    {
-        piston_init(&m->pistons[i]);
-    }
-    engine_init(&m->engine, m->pistons);
+    engine_init(&m->engine);
 }
 
 void motorist_restart(Motorist * m)

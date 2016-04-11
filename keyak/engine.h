@@ -14,7 +14,6 @@ typedef enum
 
 typedef struct _Engine
 {
-    Piston * pistons;
     uint8_t Et [KEYAK_NUM_PISTONS];
     EngineState phase;
 
@@ -25,14 +24,7 @@ typedef struct _Engine
     uint8_t * p_tmp;
     uint8_t * p_offsets;
 
-
-    uint8_t coal1[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS];
-    uint8_t coal2[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS];
-
-    uint8_t * coal1_gpu;
-    uint8_t * coal2_gpu;
-
-    uint8_t coalsel;
+    uint8_t * p_coalesced;
 
 } Engine;
 
@@ -51,12 +43,10 @@ typedef struct _Packet
 } Packet;
 
 uint8_t * coalesce_gpu(Engine * e, Packet * pkt);
-uint8_t * to_gpu(Engine * e, uint8_t bufsel, uint8_t * buf1, size_t size1);
 void dump_hex_cuda(uint8_t * buf, uint32_t size);
-
 /****               */
 
-void engine_init(Engine * e, Piston * pistons);
+void engine_init(Engine * e);
 void engine_restart(Engine * e);
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets);
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L);
