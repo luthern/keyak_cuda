@@ -3,3 +3,26 @@ Implementation of Keyak Cipher in C/CUDA
 
 Keccak Implementation based on the prior work of Gerhard Hoffmann.
 
+prerequisites: Cuda/NVidia enabled machine.  
+
+Should work on any NVidia architecture.  Tested at home and on Hokiespeed.
+
+Compile Keyak:
+
+```bash
+cd keyak/
+make -j5
+```
+
+Run the testbench
+
+```bash
+./testbench.sh
+```
+
+Run test vector to ensure implementation is correct
+
+```bash
+cd vectors/
+./v1.sh
+```
