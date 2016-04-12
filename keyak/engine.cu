@@ -39,15 +39,12 @@ void dump_hex_cuda(uint8_t * buf, uint32_t size)
 
 __device__ __constant__ uint8_t ENGINE_INPUT[KEYAK_NUM_PISTONS * KEYAK_STATE_SIZE * KEYAK_GPU_BUF_SLOTS * 2];
 
-__device__ __constant__ uint8_t CPRIME_INJECTION[8] = {KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8,
+__device__ __constant__ uint8_t OFFSETS_CPRIME[8] = {KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8,
                                                        KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8};
 
-uint8_t * get_cprime_ptr()
-{
-    uint8_t * ptr;
-    HANDLE_ERROR(cudaGetSymbolAddress((void**)&ptr, CPRIME_INJECTION));
-    return ptr;
-}
+__device__ __constant__ uint8_t OFFSETS_1TAG[8] = {KEYAK_TAG_SIZE/8, 0, 0, 0, 0, 0, 0, 0};
+__device__ __constant__ uint8_t OFFSETS_ZERO[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
 
 // interleave 2 cpu buffers and make 1 copy to GPU
 uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
@@ -145,11 +142,15 @@ void engine_init(Engine * e)
     HANDLE_ERROR(cudaMemset(e->p_offsets,0,KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMemset(e->p_tmp,0,KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
 
-    int i;
-    for (i = 0; i < KEYAK_NUM_PISTONS; i++)
-    {
-        cudaStreamCreate( e->p_streams + i );
-    }
+
+    HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_cprime, OFFSETS_CPRIME));
+    HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_zero, OFFSETS_ZERO));
+    HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_1tag, OFFSETS_1TAG));
+    /*int i;*/
+    /*for (i = 0; i < KEYAK_NUM_PISTONS; i++)*/
+    /*{*/
+        /*cudaStreamCreate( e->p_streams + i );*/
+    /*}*/
 }
 
 void engine_destroy(Engine * e)
@@ -160,11 +161,11 @@ void engine_destroy(Engine * e)
     cudaFree(e->p_offsets);
     cudaFree(e->p_tmp);
     cudaFree(e->p_state);
-    int i;
-    for (i = 0; i < KEYAK_NUM_PISTONS; i++)
-    {
-        cudaStreamDestroy( e->p_streams[i] );
-    }
+    /*int i;*/
+    /*for (i = 0; i < KEYAK_NUM_PISTONS; i++)*/
+    /*{*/
+        /*cudaStreamDestroy( e->p_streams[i] );*/
+    /*}*/
 }
 
 void engine_restart(Engine * e)
@@ -180,63 +181,52 @@ void engine_restart(Engine * e)
     //HANDLE_ERROR(cudaMemset(e->p_tmp,0,KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
 }
 
+// offsets is GPU owned
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
-
-    cudaMemcpyAsync(e->p_offsets, offsets, KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice);
-
-
+    /*dump_hex(offsets, 8);*/
     piston_spark<<<KEYAK_NUM_PISTONS,1>>>
-        (e->p_state, eom, e->p_offsets);
+        (e->p_state, eom, offsets);
 
-    memmove(e->Et, offsets, KEYAK_NUM_PISTONS);
+    // memmove(e->Et, offsets, KEYAK_NUM_PISTONS);
 }
 
 // buf is GPU owned
 void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L)
 {
-    piston_centralize_state<<< KEYAK_NUM_PISTONS, L[0] >>>(buf, e->p_state, L[0]);
+    piston_centralize_state<<< KEYAK_NUM_PISTONS, KEYAK_CPRIME / 8 >>>(buf, e->p_state, KEYAK_CPRIME / 8);
     e->phase = EngineFresh;
 }
 
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
 {
     assert(e->phase == EngineEndOfMessage);
-    uint8_t i;
     engine_spark(e, 1, L);
 
     // stage it so there is only one copy if possible
-    if (KEYAK_NUM_PISTONS > 1 && L[0] == L[1])
+    if (L == e->p_offsets_cprime || L == e->p_offsets_zero)
     {
-        if (L[0])
+        if (L == e->p_offsets_cprime)
         {
-            piston_centralize_state<<< KEYAK_NUM_PISTONS, L[0] >>>(e->p_tmp, e->p_state, L[0]);
+            piston_centralize_state<<< KEYAK_NUM_PISTONS, KEYAK_CPRIME / 8>>>(e->p_tmp, e->p_state, KEYAK_CPRIME / 8);
             HANDLE_ERROR(
                     cudaMemcpyAsync(T->buf + T->length,
                         e->p_tmp,
-                        L[0] * KEYAK_NUM_PISTONS, cudaMemcpyDeviceToHost)
+                        (KEYAK_CPRIME / 8) * KEYAK_NUM_PISTONS, cudaMemcpyDeviceToHost)
                     );
-            T->length += L[0] * KEYAK_NUM_PISTONS;
+            T->length += (KEYAK_CPRIME / 8) * KEYAK_NUM_PISTONS;
         }
     }
     else
     {
-        for (i = 0; i < KEYAK_NUM_PISTONS; i++)
-        {
-            //dump_hex(L,8);
-            if (L[i])
-            {
-                // TODO consider making one copy or making this async
-                assert(L[i] <= PISTON_RS);
-                HANDLE_ERROR(
-                        cudaMemcpyAsync(T->buf + T->length,
-                            e->p_state + i * KEYAK_STATE_SIZE,
-                            L[i], cudaMemcpyDeviceToHost)
-                        );
+        assert(KEYAK_TAG_SIZE/8 <= PISTON_RS);
+        HANDLE_ERROR(
+                cudaMemcpyAsync(T->buf + T->length,
+                    e->p_state,
+                    KEYAK_TAG_SIZE/8, cudaMemcpyDeviceToHost)
+                );
 
-                T->length += L[i];
-            }
-        }
+        T->length += KEYAK_TAG_SIZE/8;
     }
     e->phase = EngineFresh;
 }
@@ -267,7 +257,7 @@ void engine_inject(Engine * e, uint8_t * A, uint8_t isLeftovers,uint32_t amt)
 
     if (e->phase == EngineCrypted || isLeftovers)
     {
-        engine_spark(e,0, offsets_zero);
+        engine_spark(e,0, e->p_offsets_zero);
         e->phase = EngineFresh;
     }
     else

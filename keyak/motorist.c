@@ -28,11 +28,11 @@ static void make_knot(Motorist * m)
 {
     Buffer Tprime;
     int i = KEYAK_NUM_PISTONS;
-    uint8_t primes[KEYAK_NUM_PISTONS] = {KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8,
+    uint8_t primes[8] = {KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8,
                                          KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8 };
     buffer_init(&Tprime, NULL, 0);
 
-    engine_get_tags(&m->engine, &Tprime, primes);
+    engine_get_tags(&m->engine, &Tprime, m->engine.p_offsets_cprime);
 
     buffer_seek(&Tprime, 0);
 
@@ -67,18 +67,18 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
     if (!tagFlag)
     {
         // move engine state along ..
-        engine_get_tags(&m->engine,&Tprime, offsets);
+        engine_get_tags(&m->engine,&Tprime, m->engine.p_offsets_zero);
     }
     else
     {
         offsets[0] = KEYAK_TAG_SIZE / 8;
         if (!unwrapFlag)
         {
-            engine_get_tags(&m->engine,T, offsets);
+            engine_get_tags(&m->engine, T, m->engine.p_offsets_1tag);
             return 1;
         }
         
-        engine_get_tags(&m->engine,&Tprime, offsets);
+        engine_get_tags(&m->engine, &Tprime, m->engine.p_offsets_1tag);
         if (!buffer_same(&Tprime,T))
         {
             m->phase = MotoristFailed;
