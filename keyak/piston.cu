@@ -4,6 +4,7 @@
 
 #include <cuda.h>
 
+#include "keccak.h"
 #include "piston.h"
 #include "defs.h"
 #include "misc.h"
@@ -21,12 +22,12 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
     uint8_t piston = blockIdx.x;
     uint32_t stateoffset = piston * KEYAK_STATE_SIZE;
     
-    if (eom)
+    if (eom && threadIdx.x == 0)
     {
         uint8_t offset = offsets == NULL ? 0 : offsets[piston];
         state[stateoffset + PISTON_EOM] ^= ( offset == 0 ) ? 0xff : offset;
     }
-    PERMUTE(state + stateoffset);
+    PERMUTE((uint64_t*)(state + stateoffset));
 
 }
 

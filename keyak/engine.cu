@@ -146,6 +146,8 @@ void engine_init(Engine * e)
     HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_cprime, OFFSETS_CPRIME));
     HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_zero, OFFSETS_ZERO));
     HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_1tag, OFFSETS_1TAG));
+
+    gpu_init_keccak_tables();
     /*int i;*/
     /*for (i = 0; i < KEYAK_NUM_PISTONS; i++)*/
     /*{*/
@@ -184,11 +186,20 @@ void engine_restart(Engine * e)
 // offsets is GPU owned
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
-    /*dump_hex(offsets, 8);*/
-    piston_spark<<<KEYAK_NUM_PISTONS,1>>>
+#define TRYTHIS
+#ifdef TRYTHIS
+    piston_spark<<<KEYAK_NUM_PISTONS,25>>>
         (e->p_state, eom, offsets);
+#else
 
-    // memmove(e->Et, offsets, KEYAK_NUM_PISTONS);
+    int i;
+    for (i=0; i < KEYAK_NUM_PISTONS; i++)
+    {
+        piston_spark<<<1,25>>>
+            (e->p_state + i * KEYAK_STATE_SIZE, eom, offsets);
+    }
+
+#endif
 }
 
 // buf is GPU owned
