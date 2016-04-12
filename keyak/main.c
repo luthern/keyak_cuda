@@ -169,5 +169,7 @@ done:
     fclose(outputf);
     ERR_free_strings();
 
+    //engine_destroy(k);
+
     return 0;
 }

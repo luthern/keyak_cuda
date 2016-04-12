@@ -27,8 +27,8 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
         uint8_t offset = offsets == NULL ? 0 : offsets[piston];
         state[stateoffset + PISTON_EOM] ^= ( offset == 0 ) ? 0xff : offset;
     }
-    PERMUTE((uint64_t*)(state + stateoffset));
 
+    PERMUTE((uint64_t*)(state + stateoffset));
 }
 
 __global__ void piston_centralize_state(uint8_t * dst, uint8_t * state, uint8_t amt)

@@ -3,7 +3,7 @@
 /* Based on implementation of Keccak-f by Gerhard Hoffman.        */
 /**/
 
-#define nope
+#define IS_THIS_WORKING
 #ifdef IS_THIS_WORKING
 
 #include <stdio.h>

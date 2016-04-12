@@ -26,6 +26,7 @@ void motorist_restart(Motorist * m)
 
 static void make_knot(Motorist * m)
 {
+    // TODO maybe make a piston function that does this
     engine_get_tags_gpu(&m->engine, m->engine.p_tmp, m->engine.p_offsets_cprime);
 
     engine_inject_collective(&m->engine, m->engine.p_tmp, KEYAK_NUM_PISTONS * KEYAK_CPRIME / 8, 0, 0);
@@ -60,6 +61,7 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
             return 1;
         }
         
+        // TODO do this on GPU
         engine_get_tags(&m->engine, &Tprime, m->engine.p_offsets_1tag);
         if (!buffer_same(&Tprime,T))
         {
@@ -145,8 +147,10 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
             i++;
         }
+        timer_start(&tcrypt, "engine_crypt");
         engine_yield(&m->engine, O->buf, out_offset);
         O->length += out_offset;
+        timer_accum(&tcrypt);
     }
     while(pkt->input_offset < pkt->input_size);
 

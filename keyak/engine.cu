@@ -191,11 +191,10 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
     piston_spark<<<KEYAK_NUM_PISTONS,PERMUTE_THREADS>>>
         (e->p_state, eom, offsets);
 #else
-
     int i;
     for (i=0; i < KEYAK_NUM_PISTONS; i++)
     {
-        piston_spark<<<1,25>>>
+        piston_spark<<<1,32>>>
             (e->p_state + i * KEYAK_STATE_SIZE, eom, offsets);
     }
 
@@ -316,7 +315,7 @@ void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dF
         {
             piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
                     ptr, i, PISTON_RA, 0);
-            piston_spark<<<KEYAK_NUM_PISTONS,1>>>
+            piston_spark<<<KEYAK_NUM_PISTONS, PERMUTE_THREADS>>>
                 (e->p_state, 0, NULL);
 
         }
