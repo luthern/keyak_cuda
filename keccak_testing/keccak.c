@@ -136,44 +136,44 @@ void KeccakP1600_StatePermute(void *argState, UINT8 rounds, UINT8 LFSRinitialSta
     while( --round != 0 );
 }
 
-int main()
-{
-    /*
-    UINT8 st = 0xd5;
-    UINT8 rounds = 12;
-    UINT8 j;
-    tKeccakLane op;
-    for (j = 0; j < rounds; j++)
-    {
-        op = KeccakF1600_GetNextRoundConstant(&st);
-        printf("Round %d value %llX\n", j+1, op);
-    }
+/*int main()*/
+/*{*/
+    /***/
+    /*UINT8 st = 0xd5;*/
+    /*UINT8 rounds = 12;*/
+    /*UINT8 j;*/
+    /*tKeccakLane op;*/
+    /*for (j = 0; j < rounds; j++)*/
+    /*{*/
+        /*op = KeccakF1600_GetNextRoundConstant(&st);*/
+        /*printf("Round %d value %llX\n", j+1, op);*/
+    /*}*/
 
-    */
-    char * input = malloc(200);
-    FILE *f = fopen("input", "rb");
-    fread(input, 200, 1, f); 
-    fclose(f);
-    int i;
-    for (i = 0; i < 200; i++)
-    {
-        printf("%02hhx", input[i]);
-    }
-    printf("\n\n");
-    struct timer t;
-    memset(&t, 0, sizeof(struct timer));
-    timer_start(&t, "1000000 sessions");
-    for (i = 0; i < 1000000; i++)
-    {
-        PERMUTE(input);
-    }
-    timer_end(&t);
-    for (i = 0; i < 200; i++)
-    {
-        printf("%02hhx", input[i]);
-    }
-    printf("\n\n");
-    return 0;
-}
+    /**/
+    /*char * input = malloc(200);*/
+    /*FILE *f = fopen("input", "rb");*/
+    /*fread(input, 200, 1, f); */
+    /*fclose(f);*/
+    /*int i;*/
+    /*for (i = 0; i < 200; i++)*/
+    /*{*/
+        /*printf("%02hhx", input[i]);*/
+    /*}*/
+    /*printf("\n\n");*/
+    /*struct timer t;*/
+    /*memset(&t, 0, sizeof(struct timer));*/
+    /*timer_start(&t, "1000000 sessions");*/
+    /*for (i = 0; i < 1000000; i++)*/
+    /*{*/
+        /*PERMUTE(input);*/
+    /*}*/
+    /*timer_end(&t);*/
+    /*for (i = 0; i < 200; i++)*/
+    /*{*/
+        /*printf("%02hhx", input[i]);*/
+    /*}*/
+    /*printf("\n\n");*/
+    /*return 0;*/
+/*}*/
 
 
