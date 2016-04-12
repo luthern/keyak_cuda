@@ -3,7 +3,7 @@ obj = $(src:.c=.o) engine.o utils.o
 
 name=keyak
 
-CFLAGS= -O3 -Werror
+CFLAGS= -I/usr/local/cuda-7.5/include/ -O3 -Werror 
 LDFLAGS= -lcudart -lcudart -lcrypto
 
 CC=g++
@@ -15,7 +15,7 @@ $(name): $(obj)
 engine.o: engine.cu piston.cu keccak.cu engine.h defs.h piston.h
 	$(CCG) engine.cu -c -o engine.o
 
-utils.o: utils.cu
+utils.o: utils.cu defs.h
 	$(CCG) utils.cu -c -o utils.o
 
 #keccak.o: keccak.cu

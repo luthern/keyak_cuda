@@ -28,18 +28,25 @@ static void make_knot(Motorist * m)
 {
     Buffer Tprime;
     int i = KEYAK_NUM_PISTONS;
-    uint8_t primes[KEYAK_NUM_PISTONS];
+    uint8_t primes[KEYAK_NUM_PISTONS] = {KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8,
+                                         KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8 };
     buffer_init(&Tprime, NULL, 0);
-    while(i--)
-    {
-        primes[i] = KEYAK_CPRIME/8;
-    }
 
     engine_get_tags(&m->engine, &Tprime, primes);
 
     buffer_seek(&Tprime, 0);
 
-    engine_inject_collective(&m->engine, &Tprime, 0);
+    /*printf("make knot collective injection:\n");*/
+    /*int k;*/
+    /*for (k=0; k < KEYAK_NUM_PISTONS; k++)*/
+    /*{*/
+        /*printf(" %d ",primes[k]);*/
+    /*}*/
+    /*printf("\n");*/
+    engine_get_tags_gpu(&m->engine, m->engine.p_tmp, primes);
+
+    // TODO const mem ptr
+    engine_inject_collective(&m->engine, m->engine.p_tmp, Tprime.length, 0, 0);
 }
 
 void motorist_setup()
@@ -122,13 +129,18 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
         block = coalesce_gpu(&m->engine, pkt);
         uint8_t i = 0;
 
-        while(pkt->rs_sizes[i] && i < KEYAK_GPU_BUF_SLOTS)
+        /*printf("\nabsorbed %ld/%ld input\n", pkt->input_offset,pkt->input_size);*/
+
+        while((i < KEYAK_GPU_BUF_SLOTS) && pkt->rs_sizes[i])
         {
+            
+            /*printf("i: %d < %d ? %d\n",i, KEYAK_GPU_BUF_SLOTS,i<KEYAK_GPU_BUF_SLOTS);*/
 
             offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
 
             timer_start(&tcrypt, "engine_crypt");
 
+            /*printf("crypting %d bytes\n",pkt->rs_sizes[i]);*/
             engine_crypt(&m->engine, block + offset, O, unwrapFlag, pkt->rs_sizes[i]);
 
             rs_offset += pkt->rs_sizes[i];
@@ -138,12 +150,14 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
             timer_start(&tinject, "engine_inject");
 
+            /*printf("injecting %d bytes\n",pkt->ra_sizes[i]);*/
             engine_inject(&m->engine,block + offset + PISTON_RS * KEYAK_NUM_PISTONS, 
                     (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size, pkt->ra_sizes[i]);
             ra_offset += pkt->ra_sizes[i];
 
 
             timer_accum(&tinject);
+
 
             i++;
         }
@@ -189,7 +203,7 @@ uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
     timer_start(&starttag,"start_engine");
     assert(m->phase == MotoristReady);
 
-    engine_inject_collective(&m->engine, suv, 1);
+    engine_inject_collective(&m->engine, suv->buf, suv->length, 1,1);
     
     if (forgetFlag)
     {

@@ -30,6 +30,12 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
 
 }
 
+__global__ void piston_centralize_state(uint8_t * dst, uint8_t * state, uint8_t amt)
+{
+    uint8_t piston = blockIdx.x;
+    dst[piston * amt + threadIdx.x] = state[piston * KEYAK_STATE_SIZE + threadIdx.x];
+}
+
 
 // size is the size of entire meta data block for pistons to absorb
 // size <= PISTON_RA * KEYAK_NUM_PISTONS
@@ -77,7 +83,7 @@ __global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t off
     uint32_t statestart = piston * KEYAK_STATE_SIZE;
     int i = threadIdx.x;
 
-    if (i < KEYAK_BUFFER_SIZE)
+    if (i < offset + size)
     {
         if (threadIdx.x == 0)
         {
@@ -105,11 +111,7 @@ __global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t off
                 ^= x[offset + i];
         }
     }
-
 }
-
-#define CRYPT_SIZE                      (PISTON_RS * KEYAK_NUM_PISTONS)
-#define MAX_CUDA_THREADS_PER_BLOCK      1024
 
 __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
                                 uint32_t amt, uint8_t unwrapFlag)

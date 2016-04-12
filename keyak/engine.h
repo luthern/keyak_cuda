@@ -1,6 +1,8 @@
 #ifndef _ENGINE_H_
 #define _ENGINE_H_
 
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include "piston.h"
 #include "defs.h"
     
@@ -26,6 +28,8 @@ typedef struct _Engine
 
     uint8_t * p_coalesced;
 
+    cudaStream_t p_streams[KEYAK_NUM_PISTONS];
+
 } Engine;
 
 /**** optimizations */
@@ -44,6 +48,7 @@ typedef struct _Packet
 
 uint8_t * coalesce_gpu(Engine * e, Packet * pkt);
 void dump_hex_cuda(uint8_t * buf, uint32_t size);
+void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L);
 /****               */
 
 void engine_init(Engine * e);
@@ -51,7 +56,7 @@ void engine_restart(Engine * e);
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets);
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L);
 void engine_inject(Engine * e, uint8_t * A, uint8_t isLeftovers,uint32_t amt);
-void engine_inject_collective(Engine * e, Buffer * X, uint8_t dFlag);
+void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dFlag, uint8_t fromHost);
 
 void engine_crypt(Engine * e, uint8_t * I, Buffer * O, uint8_t unwrapFlag, uint32_t amt);
 
