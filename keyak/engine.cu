@@ -130,7 +130,7 @@ void engine_init(Engine * e)
     // TODO consider making these all one contiguous block or even different memories
     HANDLE_ERROR(cudaMalloc(&e->p_in, PISTON_RS * KEYAK_NUM_PISTONS ));
 
-    HANDLE_ERROR(cudaMalloc(&e->p_out, PISTON_RS * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMalloc(&e->p_out, PISTON_RS * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS ));
     HANDLE_ERROR(cudaMalloc(&e->p_state, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&e->p_tmp, KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&e->p_offsets, KEYAK_NUM_PISTONS ));
@@ -188,7 +188,7 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
 #define TRYTHIS
 #ifdef TRYTHIS
-    piston_spark<<<KEYAK_NUM_PISTONS,25>>>
+    piston_spark<<<KEYAK_NUM_PISTONS,PERMUTE_THREADS>>>
         (e->p_state, eom, offsets);
 #else
 
@@ -206,6 +206,7 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L)
 {
     assert(e->phase == EngineEndOfMessage);
+    engine_spark(e, 1,e->p_offsets_cprime);
     piston_centralize_state<<< KEYAK_NUM_PISTONS, KEYAK_CPRIME / 8 >>>(buf, e->p_state, KEYAK_CPRIME / 8);
     e->phase = EngineFresh;
 }
@@ -327,8 +328,8 @@ void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dF
 }
 
 // I is a GPU owned buffer
-// O is a CPU owned buffer
-void engine_crypt(Engine * e, uint8_t * I, Buffer * O, uint8_t unwrapFlag, uint32_t amt)
+// O is a GPU owned buffer
+void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt)
 {
 
     assert(e->phase == EngineFresh);
@@ -336,16 +337,14 @@ void engine_crypt(Engine * e, uint8_t * I, Buffer * O, uint8_t unwrapFlag, uint3
     // TODO is PISTON_RS i.e. 1-1 the best ratio here?
 
     piston_crypt<<<KEYAK_NUM_PISTONS,PISTON_RS>>>
-        (I,e->p_out,e->p_state,amt, unwrapFlag);
-
-    // Copy the output of pistons
-    assert(O->length + amt < KEYAK_BUFFER_SIZE);
-    HANDLE_ERROR(cudaMemcpyAsync(O->buf + O->length, e->p_out,
-                amt,
-                cudaMemcpyDeviceToHost));
-
-    O->length += amt;
+        (I,O,e->p_state,amt, unwrapFlag);
 
 }
 
+void engine_yield(Engine * e, uint8_t * buf, uint32_t size)
+{
+    HANDLE_ERROR(cudaMemcpyAsync(buf, e->p_out,
+                size,
+                cudaMemcpyDeviceToHost));
+}
 

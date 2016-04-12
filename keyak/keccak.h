@@ -10,10 +10,12 @@ typedef UINT64 tKeccakLane;
 // __device__ void KeccakP1600_StatePermute(void *argState, UINT8 rounds, UINT8 LFSRinitialState);
 
 //#define PERMUTE(state)      keccak_p_kernel(state);
+//#define PERMUTE_THREADS     25
 
 //void KeccakP1600_StatePermute(void *argState, UINT8 rounds, UINT8 LFSRinitialState);
 
 #define PERMUTE(state)      KeccakP1600_StatePermute(state, 12, 0xd5);
+#define PERMUTE_THREADS     1
 
 
 void gpu_init_keccak_tables();

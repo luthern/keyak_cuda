@@ -26,7 +26,6 @@ void motorist_restart(Motorist * m)
 
 static void make_knot(Motorist * m)
 {
-    engine_spark(&m->engine, 1,m->engine.p_offsets_cprime);
     engine_get_tags_gpu(&m->engine, m->engine.p_tmp, m->engine.p_offsets_cprime);
 
     engine_inject_collective(&m->engine, m->engine.p_tmp, KEYAK_NUM_PISTONS * KEYAK_CPRIME / 8, 0, 0);
@@ -102,7 +101,7 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
     int isize;
     int asize;
-    uint32_t offset, rs_offset = 0, ra_offset = 0;
+    uint32_t offset, rs_offset = 0, ra_offset = 0, out_offset = 0;
 
     uint8_t * block;
 
@@ -111,6 +110,7 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
     {
         block = coalesce_gpu(&m->engine, pkt);
         uint8_t i = 0;
+        out_offset = 0;
 
         /*printf("\nabsorbed %ld/%ld input\n", pkt->input_offset,pkt->input_size);*/
 
@@ -124,7 +124,8 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
             timer_start(&tcrypt, "engine_crypt");
 
             /*printf("crypting %d bytes\n",pkt->rs_sizes[i]);*/
-            engine_crypt(&m->engine, block + offset, O, unwrapFlag, pkt->rs_sizes[i]);
+            engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i]);
+            out_offset += pkt->rs_sizes[i];
 
             rs_offset += pkt->rs_sizes[i];
             m->engine.phase = rs_offset < pkt->input_size ? EngineCrypted : EngineEndOfCrypt;
@@ -144,7 +145,8 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
             i++;
         }
-
+        engine_yield(&m->engine, O->buf, out_offset);
+        O->length += out_offset;
     }
     while(pkt->input_offset < pkt->input_size);
 

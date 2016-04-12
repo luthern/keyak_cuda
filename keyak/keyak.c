@@ -67,10 +67,7 @@ void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     pkt.metadata = metadata;
     pkt.metadata_size = metalen;
 
-
-    /*buffer_init(&k->I,data, datalen);*/
     buffer_init(&k->O,NULL, 0);
-    /*buffer_init(&k->A,metadata, metalen);*/
 
     motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
 
