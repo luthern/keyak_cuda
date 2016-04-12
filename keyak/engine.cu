@@ -196,6 +196,7 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L)
 {
     piston_centralize_state<<< KEYAK_NUM_PISTONS, L[0] >>>(buf, e->p_state, L[0]);
+    e->phase = EngineFresh;
 }
 
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
@@ -207,12 +208,16 @@ void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
     // stage it so there is only one copy if possible
     if (KEYAK_NUM_PISTONS > 1 && L[0] == L[1])
     {
-        piston_centralize_state<<< KEYAK_NUM_PISTONS, L[0] >>>(e->p_tmp, e->p_state, L[0]);
-        HANDLE_ERROR(
-                cudaMemcpyAsync(T->buf + T->length,
-                    e->p_state,
-                    L[0] * KEYAK_NUM_PISTONS, cudaMemcpyDeviceToHost)
-                );
+        if (L[0])
+        {
+            piston_centralize_state<<< KEYAK_NUM_PISTONS, L[0] >>>(e->p_tmp, e->p_state, L[0]);
+            HANDLE_ERROR(
+                    cudaMemcpyAsync(T->buf + T->length,
+                        e->p_tmp,
+                        L[0] * KEYAK_NUM_PISTONS, cudaMemcpyDeviceToHost)
+                    );
+            T->length += L[0] * KEYAK_NUM_PISTONS;
+        }
     }
     else
     {

@@ -43,10 +43,10 @@ static void make_knot(Motorist * m)
         /*printf(" %d ",primes[k]);*/
     /*}*/
     /*printf("\n");*/
-    engine_get_tags_gpu(&m->engine, m->engine.p_tmp, primes);
+//void engine_get_tags_gpu(Engine * e, uint8_t buf, uint8_t * L)
 
     // TODO const mem ptr
-    engine_inject_collective(&m->engine, m->engine.p_tmp, Tprime.length, 0, 0);
+    engine_inject_collective(&m->engine, Tprime.buf, Tprime.length, 0, 1);
 }
 
 void motorist_setup()

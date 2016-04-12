@@ -11,7 +11,7 @@ metadata=32f3b47535f6
 pt=e465e566e667e7
 ciphertext=20fec6154502c4776b6a02bad7f9d331c96b626c49daf2
 
-printf $pt | xxd -r -p | ../keyak $key ciphertext -n $nonce -m $metadata  > /dev/null
+printf $pt | xxd -r -p | ../keyak $key ciphertext -n $nonce -m $metadata > /dev/null
 
 calc_ciphertext=$(cat ciphertext | xxd -p ciphertext)
 
