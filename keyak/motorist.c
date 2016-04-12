@@ -26,27 +26,10 @@ void motorist_restart(Motorist * m)
 
 static void make_knot(Motorist * m)
 {
-    Buffer Tprime;
-    int i = KEYAK_NUM_PISTONS;
-    uint8_t primes[8] = {KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8,
-                                         KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8 };
-    buffer_init(&Tprime, NULL, 0);
+    engine_spark(&m->engine, 1,m->engine.p_offsets_cprime);
+    engine_get_tags_gpu(&m->engine, m->engine.p_tmp, m->engine.p_offsets_cprime);
 
-    engine_get_tags(&m->engine, &Tprime, m->engine.p_offsets_cprime);
-
-    buffer_seek(&Tprime, 0);
-
-    /*printf("make knot collective injection:\n");*/
-    /*int k;*/
-    /*for (k=0; k < KEYAK_NUM_PISTONS; k++)*/
-    /*{*/
-        /*printf(" %d ",primes[k]);*/
-    /*}*/
-    /*printf("\n");*/
-//void engine_get_tags_gpu(Engine * e, uint8_t buf, uint8_t * L)
-
-    // TODO const mem ptr
-    engine_inject_collective(&m->engine, Tprime.buf, Tprime.length, 0, 1);
+    engine_inject_collective(&m->engine, m->engine.p_tmp, KEYAK_NUM_PISTONS * KEYAK_CPRIME / 8, 0, 0);
 }
 
 void motorist_setup()

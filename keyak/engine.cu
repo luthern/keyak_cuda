@@ -205,6 +205,7 @@ void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 // buf is GPU owned
 void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L)
 {
+    assert(e->phase == EngineEndOfMessage);
     piston_centralize_state<<< KEYAK_NUM_PISTONS, KEYAK_CPRIME / 8 >>>(buf, e->p_state, KEYAK_CPRIME / 8);
     e->phase = EngineFresh;
 }
