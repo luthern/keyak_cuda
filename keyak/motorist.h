@@ -35,5 +35,6 @@ uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
 void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
                     Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag);
 
+void motorist_destroy(Motorist * m);
 
 #endif 

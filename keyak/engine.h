@@ -66,5 +66,6 @@ void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dF
 void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt);
 
 void engine_precompute();
+void engine_destroy(Engine * e);
 
 #endif

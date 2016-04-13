@@ -157,12 +157,12 @@ void engine_init(Engine * e)
 
 void engine_destroy(Engine * e)
 {
-    printf("engine_destroyed\n");
     cudaFree(e->p_in);
     cudaFree(e->p_out);
     cudaFree(e->p_offsets);
     cudaFree(e->p_tmp);
     cudaFree(e->p_state);
+    cudaFree(e->p_coalesced);
     /*int i;*/
     /*for (i = 0; i < KEYAK_NUM_PISTONS; i++)*/
     /*{*/
@@ -304,8 +304,6 @@ void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dF
         {
             piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
                     ptr, i, PISTON_RA, 0,1);
-            /*piston_spark<<<KEYAK_NUM_PISTONS, PERMUTE_THREADS>>>*/
-                /*(e->p_state, 0, NULL);*/
 
         }
 

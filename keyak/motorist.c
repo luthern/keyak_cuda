@@ -37,6 +37,11 @@ void motorist_setup()
 
 }
 
+void motorist_destroy(Motorist * m)
+{
+    engine_destroy(&m->engine);
+}
+
 // 1 success
 // 0 fail
 static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,

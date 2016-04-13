@@ -155,6 +155,8 @@ int main(int argc, char * argv[])
     fflush(outputf);
 
 done:
+    keyak_destroy(&sendr);
+    keyak_destroy(&recvr);
     free(pt);
     if (metadata != NULL) 
     {

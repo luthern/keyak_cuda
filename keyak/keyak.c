@@ -15,6 +15,11 @@ void keyak_init(Keyak* k)
     buffer_init(&k->SUV,NULL,0);
 }
 
+void keyak_destroy(Keyak * k)
+{
+    motorist_destroy(&k->motorist);
+}
+
 void keyak_restart(Keyak * k)
 {
     motorist_restart(&k->motorist);
