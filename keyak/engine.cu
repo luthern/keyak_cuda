@@ -97,28 +97,13 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
     // sanity check
     assert(total_blocks <= KEYAK_GPU_BUF_SLOTS);
 
-#if 0
-    HANDLE_ERROR(cudaMemcpyAsync( e->p_coalesced, pkt->merged,
-                total_blocks * KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice));
-    return e->p_coalesced;
-#else
-
     uint8_t * ptr;
 
-//#define USE_CONST_MEM
-#ifdef USE_CONST_MEM
-    HANDLE_ERROR(cudaGetSymbolAddress((void**)&ptr, ENGINE_INPUT));
-#else
     ptr = e->p_coalesced;
-#endif
-    //printf("copying over %d blocks\n", total_blocks);
     HANDLE_ERROR(cudaMemcpyAsync( ptr, pkt->merged,
                 total_blocks * KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice));
 
-
-
     return ptr;
-#endif
 }
 
 
@@ -148,11 +133,6 @@ void engine_init(Engine * e)
     HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_1tag, OFFSETS_1TAG));
 
     gpu_init_keccak_tables();
-    /*int i;*/
-    /*for (i = 0; i < KEYAK_NUM_PISTONS; i++)*/
-    /*{*/
-        /*cudaStreamCreate( e->p_streams + i );*/
-    /*}*/
 }
 
 void engine_destroy(Engine * e)
@@ -163,24 +143,13 @@ void engine_destroy(Engine * e)
     cudaFree(e->p_tmp);
     cudaFree(e->p_state);
     cudaFree(e->p_coalesced);
-    /*int i;*/
-    /*for (i = 0; i < KEYAK_NUM_PISTONS; i++)*/
-    /*{*/
-        /*cudaStreamDestroy( e->p_streams[i] );*/
-    /*}*/
 }
 
 void engine_restart(Engine * e)
 {
     e->phase = EngineFresh;
 
-    /*HANDLE_ERROR(cudaMemset(e->p_in, 0, PISTON_RS * KEYAK_NUM_PISTONS ));*/
-
-    /*HANDLE_ERROR(cudaMemset(e->p_out, 0, PISTON_RS * KEYAK_NUM_PISTONS ));*/
-
     HANDLE_ERROR(cudaMemset(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
-    /*HANDLE_ERROR(cudaMemset(e->p_offsets,0,KEYAK_NUM_PISTONS ));*/
-    //HANDLE_ERROR(cudaMemset(e->p_tmp,0,KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
 }
 
 // offsets is GPU owned
@@ -238,7 +207,7 @@ void engine_precompute()
     memset(offsets_zero, 0, sizeof(offsets_zero));
 }
 
-void engine_inject(Engine * e, uint8_t * A, uint8_t isLeftovers,uint32_t amt)
+void engine_inject(Engine * e, uint8_t * A, uint8_t doSpark, uint32_t amt)
 {
     assert(
             e->phase == EngineCrypted ||
@@ -253,12 +222,12 @@ void engine_inject(Engine * e, uint8_t * A, uint8_t isLeftovers,uint32_t amt)
     if (amt)
     {
         piston_inject_seq<<<KEYAK_NUM_PISTONS, PISTON_RA>>>
-        (e->p_state, A, 0, amt, cryptingFlag);
+        (e->p_state, A, 0, amt, cryptingFlag, doSpark);
     }
 
-    if (e->phase == EngineCrypted || isLeftovers)
+    if (doSpark)
     {
-        engine_spark(e,0, e->p_offsets_zero);
+        /*engine_spark(e,0, e->p_offsets_zero);*/
         e->phase = EngineFresh;
     }
     else

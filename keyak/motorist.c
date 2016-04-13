@@ -49,8 +49,6 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
 {
     Buffer Tprime;
     buffer_init(&Tprime, NULL, 0);
-    uint8_t offsets[KEYAK_NUM_PISTONS];
-    memset(offsets, 0, sizeof(offsets));
 
     if (!tagFlag)
     {
@@ -59,13 +57,12 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
     }
     else
     {
-        offsets[0] = KEYAK_TAG_SIZE / 8;
         if (!unwrapFlag)
         {
             engine_get_tags(&m->engine, T, m->engine.p_offsets_1tag);
             return 1;
         }
-        
+
         // TODO do this on GPU
         engine_get_tags(&m->engine, &Tprime, m->engine.p_offsets_1tag);
         if (!buffer_same(&Tprime,T))
@@ -124,6 +121,7 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
         while((i < KEYAK_GPU_BUF_SLOTS) && pkt->rs_sizes[i])
         {
             
+            uint8_t do_spark = 0;
             /*printf("i: %d < %d ? %d\n",i, KEYAK_GPU_BUF_SLOTS,i<KEYAK_GPU_BUF_SLOTS);*/
 
             offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
@@ -137,13 +135,15 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
             rs_offset += pkt->rs_sizes[i];
             m->engine.phase = rs_offset < pkt->input_size ? EngineCrypted : EngineEndOfCrypt;
 
+            do_spark = (m->engine.phase == EngineCrypted || (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size);
+
             timer_accum(&tcrypt);
 
             timer_start(&tinject, "engine_inject");
 
             /*printf("injecting %d bytes\n",pkt->ra_sizes[i]);*/
             engine_inject(&m->engine,block + offset + PISTON_RS * KEYAK_NUM_PISTONS, 
-                    (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size, pkt->ra_sizes[i]);
+                    do_spark, pkt->ra_sizes[i]);
             ra_offset += pkt->ra_sizes[i];
 
 

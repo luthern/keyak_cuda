@@ -41,7 +41,7 @@ __global__ void piston_centralize_state(uint8_t * dst, uint8_t * state, uint8_t 
 // size is the size of entire meta data block for pistons to absorb
 // size <= PISTON_RA * KEYAK_NUM_PISTONS
 // TODO consider crypting flag
-__global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset, uint32_t size, uint8_t crypting)
+__global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset, uint32_t size, uint8_t crypting, uint8_t doSpark)
 {
     uint8_t piston = blockIdx.x;
         
@@ -72,6 +72,10 @@ __global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset,
         {
             state[statestart + PISTON_INJECT_END] ^= w;
         }
+    }
+    if (doSpark)
+    {
+        PERMUTE((uint64_t *)(state + statestart));
     }
 }
 
