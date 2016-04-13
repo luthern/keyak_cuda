@@ -186,19 +186,8 @@ void engine_restart(Engine * e)
 // offsets is GPU owned
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
 {
-#define TRYTHIS
-#ifdef TRYTHIS
     piston_spark<<<KEYAK_NUM_PISTONS,PERMUTE_THREADS>>>
         (e->p_state, eom, offsets);
-#else
-    int i;
-    for (i=0; i < KEYAK_NUM_PISTONS; i++)
-    {
-        piston_spark<<<1,32>>>
-            (e->p_state + i * KEYAK_STATE_SIZE, eom, offsets);
-    }
-
-#endif
 }
 
 // buf is GPU owned
@@ -309,14 +298,14 @@ void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dF
         if ( i + PISTON_RA >= size)
         {
             piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
-                    ptr, i, size - i, dFlag);
+                    ptr, i, size - i, dFlag,0);
         }
         else
         {
             piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
-                    ptr, i, PISTON_RA, 0);
-            piston_spark<<<KEYAK_NUM_PISTONS, PERMUTE_THREADS>>>
-                (e->p_state, 0, NULL);
+                    ptr, i, PISTON_RA, 0,1);
+            /*piston_spark<<<KEYAK_NUM_PISTONS, PERMUTE_THREADS>>>*/
+                /*(e->p_state, 0, NULL);*/
 
         }
 

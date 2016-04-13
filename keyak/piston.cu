@@ -78,7 +78,7 @@ __global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset,
 // Copies from same buffer to all pistons states
 // Allows diversify flag.
 // size must not be bigger then RA
-__global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t offset, uint8_t size, uint8_t dFlag)
+__global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t offset, uint8_t size, uint8_t dFlag, uint8_t sparkFlag)
 {
     uint8_t piston = blockIdx.x;
     uint32_t statestart = piston * KEYAK_STATE_SIZE;
@@ -111,6 +111,10 @@ __global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t off
             state[statestart + 0 + threadIdx.x]
                 ^= x[offset + i];
         }
+    }
+    if (sparkFlag)
+    {
+        PERMUTE((uint64_t*)(state + statestart));
     }
 }
 
