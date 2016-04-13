@@ -58,7 +58,7 @@ void engine_yield(Engine * e, uint8_t * buf, uint32_t size);
 
 void engine_init(Engine * e);
 void engine_restart(Engine * e);
-void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets);
+void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets, uint8_t * dst, uint8_t size);
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L);
 void engine_inject(Engine * e, uint8_t * A, uint8_t isLeftovers,uint32_t amt);
 void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dFlag, uint8_t fromHost);

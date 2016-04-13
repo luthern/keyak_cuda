@@ -96,7 +96,6 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
     assert(m->phase == MotoristRiding);
     if ((pkt->input_offset >= pkt->input_size) && (pkt->metadata_offset >= pkt->metadata_size))
     {
-        printf ("FAIL\n");
         timer_start(&tinject, "engine_inject");
         engine_inject(&m->engine,NULL,0,0);
         timer_accum(&tinject);
@@ -166,7 +165,6 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
         while(m->input_ra_size[i])
         {
-            printf ("FAIL\n");
             offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
 
             timer_start(&tinject, "engine_inject");

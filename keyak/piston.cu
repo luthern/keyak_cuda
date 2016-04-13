@@ -17,7 +17,7 @@ void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
     b->length = len;
 }
 
-__global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
+__global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets, uint8_t * dst, uint8_t amt)
 {
     uint8_t piston = blockIdx.x;
     uint32_t stateoffset = piston * KEYAK_STATE_SIZE;
@@ -29,6 +29,10 @@ __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets)
     }
 
     PERMUTE((uint64_t*)(state + stateoffset));
+    if (amt)
+    {
+        dst[piston * amt + threadIdx.x] = state[piston * KEYAK_STATE_SIZE + threadIdx.x];
+    }
 }
 
 __global__ void piston_centralize_state(uint8_t * dst, uint8_t * state, uint8_t amt)

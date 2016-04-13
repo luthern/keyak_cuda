@@ -153,32 +153,31 @@ void engine_restart(Engine * e)
 }
 
 // offsets is GPU owned
-void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets)
+void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets, uint8_t * dst, uint8_t size)
 {
     piston_spark<<<KEYAK_NUM_PISTONS,PERMUTE_THREADS>>>
-        (e->p_state, eom, offsets);
+        (e->p_state, eom, offsets,dst,size);
 }
 
 // buf is GPU owned
 void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L)
 {
     assert(e->phase == EngineEndOfMessage);
-    engine_spark(e, 1,e->p_offsets_cprime);
-    piston_centralize_state<<< KEYAK_NUM_PISTONS, KEYAK_CPRIME / 8 >>>(buf, e->p_state, KEYAK_CPRIME / 8);
+    engine_spark(e, 1,e->p_offsets_cprime, buf, KEYAK_CPRIME/8);
     e->phase = EngineFresh;
 }
 
 void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
 {
     assert(e->phase == EngineEndOfMessage);
-    engine_spark(e, 1, L);
+    uint8_t amt = (L == e->p_offsets_cprime) ? KEYAK_CPRIME/8 : 0;
+    engine_spark(e, 1, L, e->p_tmp, amt);
 
     // stage it so there is only one copy if possible
     if (L == e->p_offsets_cprime || L == e->p_offsets_zero)
     {
         if (L == e->p_offsets_cprime)
         {
-            piston_centralize_state<<< KEYAK_NUM_PISTONS, KEYAK_CPRIME / 8>>>(e->p_tmp, e->p_state, KEYAK_CPRIME / 8);
             HANDLE_ERROR(
                     cudaMemcpyAsync(T->buf + T->length,
                         e->p_tmp,
@@ -227,7 +226,6 @@ void engine_inject(Engine * e, uint8_t * A, uint8_t doSpark, uint32_t amt)
 
     if (doSpark)
     {
-        /*engine_spark(e,0, e->p_offsets_zero);*/
         e->phase = EngineFresh;
     }
     else
