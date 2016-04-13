@@ -141,12 +141,8 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
             timer_accum(&tcrypt);
 
-            timer_start(&tinject, "engine_inject");
 
             ra_offset += pkt->ra_sizes[i];
-
-
-            timer_accum(&tinject);
 
 
             i++;
