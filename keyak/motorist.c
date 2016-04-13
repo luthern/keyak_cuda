@@ -127,22 +127,22 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
             timer_start(&tcrypt, "engine_crypt");
 
+            // uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag)
             /*printf("crypting %d bytes\n",pkt->rs_sizes[i]);*/
-            engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i]);
+            do_spark = ((rs_offset + pkt->rs_sizes[i]) < pkt->input_size || (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size);
+
+            engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i],
+                    block + offset + PISTON_RS * KEYAK_NUM_PISTONS, do_spark, pkt->ra_sizes[i], 1);
+
             out_offset += pkt->rs_sizes[i];
 
             rs_offset += pkt->rs_sizes[i];
-            m->engine.phase = rs_offset < pkt->input_size ? EngineCrypted : EngineEndOfCrypt;
 
-            do_spark = (m->engine.phase == EngineCrypted || (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size);
 
             timer_accum(&tcrypt);
 
             timer_start(&tinject, "engine_inject");
 
-            /*printf("injecting %d bytes\n",pkt->ra_sizes[i]);*/
-            engine_inject(&m->engine,block + offset + PISTON_RS * KEYAK_NUM_PISTONS, 
-                    do_spark, pkt->ra_sizes[i]);
             ra_offset += pkt->ra_sizes[i];
 
 

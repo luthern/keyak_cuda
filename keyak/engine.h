@@ -63,7 +63,8 @@ void engine_get_tags(Engine * e, Buffer * T, uint8_t * L);
 void engine_inject(Engine * e, uint8_t * A, uint8_t isLeftovers,uint32_t amt);
 void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dFlag, uint8_t fromHost);
 
-void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt);
+void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt,
+            uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag);
 
 void engine_precompute();
 void engine_destroy(Engine * e);

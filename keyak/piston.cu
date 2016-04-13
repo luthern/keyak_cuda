@@ -45,7 +45,7 @@ __global__ void piston_centralize_state(uint8_t * dst, uint8_t * state, uint8_t 
 // size is the size of entire meta data block for pistons to absorb
 // size <= PISTON_RA * KEYAK_NUM_PISTONS
 // TODO consider crypting flag
-__global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t offset, uint32_t size, uint8_t crypting, uint8_t doSpark)
+__global__ void piston_inject_seq(uint8_t * state, uint8_t * x, uint32_t size, uint8_t crypting, uint8_t doSpark)
 {
     uint8_t piston = blockIdx.x;
         
@@ -127,7 +127,7 @@ __global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t off
 }
 
 __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
-                                uint32_t amt, uint8_t unwrapFlag)
+                                uint32_t amt, uint8_t unwrapFlag, uint8_t * x, uint32_t size, uint8_t crypting, uint8_t doSpark)
 {
     int i = blockIdx.x * KEYAK_STATE_SIZE + threadIdx.x;
     int consuming = blockIdx.x * PISTON_RS + threadIdx.x;
@@ -143,6 +143,47 @@ __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
             state[piston * KEYAK_STATE_SIZE + PISTON_CRYPT_END] ^= (threadIdx.x + 1);
         }
     }
+
+
+    // PISTON INJECT SEQ
+    if (size)
+    {
+        /*uint8_t piston = blockIdx.x;*/
+        uint8_t w = crypting ? PISTON_RS : 0;
+        uint8_t cap = (PISTON_RA - w);
+        i = cap * piston + threadIdx.x;
+        uint32_t statestart = piston * KEYAK_STATE_SIZE;
+
+        if ( i < size)
+        {
+            state[statestart + w + threadIdx.x]
+                ^= x[i];
+        }
+        if (threadIdx.x == 0 && piston < KEYAK_NUM_PISTONS)
+        {
+            state[statestart + PISTON_INJECT_START] ^= w;
+
+            uint16_t bitrate = cap * (piston + 1);
+            if (bitrate <= size)
+            {
+                state[statestart + PISTON_INJECT_END] ^= cap;
+            }
+            else if ( size + cap > bitrate )
+            {
+                state[statestart + PISTON_INJECT_END] ^= w+(uint8_t)(size - cap * piston);
+            }
+            else
+            {
+                state[statestart + PISTON_INJECT_END] ^= w;
+            }
+        }
+        if (doSpark)
+        {
+            PERMUTE((uint64_t *)(state + statestart));
+        }
+    }
+
+
 }
 
 

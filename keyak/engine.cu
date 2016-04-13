@@ -206,34 +206,6 @@ void engine_precompute()
     memset(offsets_zero, 0, sizeof(offsets_zero));
 }
 
-void engine_inject(Engine * e, uint8_t * A, uint8_t doSpark, uint32_t amt)
-{
-    assert(
-            e->phase == EngineCrypted ||
-            e->phase == EngineEndOfCrypt ||
-            e->phase == EngineFresh
-            );
-    uint8_t cryptingFlag = (
-            e->phase == EngineCrypted ||
-            e->phase == EngineEndOfCrypt
-            );
-
-    if (amt)
-    {
-        piston_inject_seq<<<KEYAK_NUM_PISTONS, PISTON_RA>>>
-        (e->p_state, A, 0, amt, cryptingFlag, doSpark);
-    }
-
-    if (doSpark)
-    {
-        e->phase = EngineFresh;
-    }
-    else
-    {
-        e->phase = EngineEndOfMessage;
-    }
-}
-
 void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dFlag, uint8_t fromHost)
 {
     assert(e->phase == EngineFresh);
@@ -280,9 +252,38 @@ void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dF
 
 }
 
+void engine_inject(Engine * e, uint8_t * A, uint8_t doSpark, uint32_t amt)
+{
+    assert(
+            e->phase == EngineCrypted ||
+            e->phase == EngineEndOfCrypt ||
+            e->phase == EngineFresh
+            );
+    uint8_t cryptingFlag = (
+            e->phase == EngineCrypted ||
+            e->phase == EngineEndOfCrypt
+            );
+
+    if (amt)
+    {
+        piston_inject_seq<<<KEYAK_NUM_PISTONS, PISTON_RA>>>
+        (e->p_state, A, amt, cryptingFlag, doSpark);
+    }
+
+    if (doSpark)
+    {
+        e->phase = EngineFresh;
+    }
+    else
+    {
+        e->phase = EngineEndOfMessage;
+    }
+}
+
 // I is a GPU owned buffer
 // O is a GPU owned buffer
-void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt)
+void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt,
+            uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag)
 {
 
     assert(e->phase == EngineFresh);
@@ -290,7 +291,16 @@ void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint
     // TODO is PISTON_RS i.e. 1-1 the best ratio here?
 
     piston_crypt<<<KEYAK_NUM_PISTONS,PISTON_RS>>>
-        (I,O,e->p_state,amt, unwrapFlag);
+        (I,O,e->p_state,amt, unwrapFlag, A,size,cryptingFlag, doSpark);
+
+    if (doSpark)
+    {
+        e->phase = EngineFresh;
+    }
+    else
+    {
+        e->phase = EngineEndOfMessage;
+    }
 
 }
 
