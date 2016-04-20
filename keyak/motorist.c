@@ -90,6 +90,7 @@ void motorist_timers_end()
 }
 
 extern void dump_state(Engine * e, int piston);
+
 void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
                     Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag)
 {
@@ -132,7 +133,8 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
             do_spark = ((rs_offset + pkt->rs_sizes[i]) < pkt->input_size || (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size);
 
             engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i],
-                    block + offset + PISTON_RS * KEYAK_NUM_PISTONS, do_spark, pkt->ra_sizes[i], 1);
+                    block + offset + PISTON_RS * KEYAK_NUM_PISTONS, do_spark, pkt->ra_sizes[i], 1,
+                    pkt->input_size,pkt->metadata_size);
 
             out_offset += pkt->rs_sizes[i];
 
@@ -144,11 +146,17 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
             ra_offset += pkt->ra_sizes[i];
 
-
             i++;
+            break;
         }
+
+        {
+            out_offset = pkt->input_size;
+
+        }
+
         timer_start(&tcrypt, "engine_crypt");
-        engine_yield(&m->engine, O->buf, out_offset);
+        engine_yield(&m->engine, O->buf, pkt->input_size);
         O->length += out_offset;
         timer_accum(&tcrypt);
     }
@@ -156,6 +164,7 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
 
     while(pkt->input_offset < pkt->input_size)
     {
+        fprintf(stderr,"this should NOT happen!\n");
         block = coalesce_gpu(&m->engine, pkt);
         uint8_t i = 0;
 
@@ -207,5 +216,6 @@ uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
     timer_accum(&starttag);
     return r;
 }
+
 
 

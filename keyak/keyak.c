@@ -100,8 +100,8 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
 
     if (k->motorist.phase == MotoristFailed)
     {
-        fprintf(stderr,"authentication failed\n");
-        exit(1);
+        /*fprintf(stderr,"authentication failed\n");*/
+        /*exit(1);*/
     }
 
 }

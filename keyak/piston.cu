@@ -131,28 +131,94 @@ __global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t off
 }
 
 __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
-                                uint32_t amt, uint8_t unwrapFlag, uint8_t * x, uint32_t size, uint8_t crypting, uint8_t doSpark)
+                                uint32_t _amt, uint8_t unwrapFlag, uint8_t * _x, uint32_t _size, uint8_t crypting, uint8_t _doSpark,
+                                uint32_t rs_total, uint32_t ra_total)
 {
     int i = blockIdx.x * KEYAK_STATE_SIZE + threadIdx.x;
     int consuming = blockIdx.x * PISTON_RS + threadIdx.x;
     uint8_t piston = blockIdx.x;
-    if (consuming < amt)
-    {
-        out[consuming] = state[i] ^ in[consuming];
-        state[i] = unwrapFlag ? in[consuming] : in[consuming] ^ state[i];
+    uint8_t do_spark;
+    
+    uint32_t rs_offset = 0, ra_offset = 0;
+    
+    int rs_leftover, ra_leftover, rs_amt, ra_amt;
 
-        // if its last byte for piston ...
-        if ( threadIdx.x == PISTON_RS-1 || consuming == amt - 1)
+    while(rs_offset < rs_total)
+    {
+        rs_leftover = (rs_total - rs_offset);
+        ra_leftover = (ra_total - ra_offset);
+
+        rs_amt = MIN(rs_leftover, PISTON_RS * KEYAK_NUM_PISTONS);
+        ra_amt = MIN(ra_leftover, PISTON_RA * KEYAK_NUM_PISTONS);
+
+        do_spark = ((rs_offset + rs_amt) < rs_total || (ra_offset + ra_amt) < ra_total);
+
+        if (consuming < rs_amt)
         {
-            state[piston * KEYAK_STATE_SIZE + PISTON_CRYPT_END] ^= (threadIdx.x + 1);
-        }
-    }
+            out[consuming] = state[i] ^ in[consuming];
+            state[i] = unwrapFlag ? in[consuming] : in[consuming] ^ state[i];
 
-    if (size)
-    {
-        _piston_inject(state, x, size, crypting, doSpark);
+            // if its last byte for piston ...
+            if ( threadIdx.x == PISTON_RS-1 || consuming == rs_amt - 1)
+            {
+                state[piston * KEYAK_STATE_SIZE + PISTON_CRYPT_END] ^= (threadIdx.x + 1);
+            }
+        }
+
+        if (ra_amt)
+        {
+            /*if (blockIdx.x == 0 && threadIdx.x ==0) printf("PISTON_INJECT\n", rs_amt);*/
+            _piston_inject(state, in + (PISTON_RS * KEYAK_NUM_PISTONS), ra_amt, crypting, do_spark);
+        }
+        else if (do_spark)
+        {
+            /*if (blockIdx.x == 0 && threadIdx.x ==0) printf("PISTON_PERMUTE\n", rs_amt);*/
+            PERMUTE((uint64_t *)(state + blockIdx.x * KEYAK_STATE_SIZE));
+        }
+
+
+        rs_offset += rs_amt;
+        ra_offset += ra_amt;
+        
+        out += rs_amt;
+        in += KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS;
     }
 
 }
+
+
+/*__global__ piston_motorist( uint8_t blocks, uint8_t numBlocks, size_t sizeLeftover, size_t size_rs, size_t size_ra )*/
+/*{*/
+    /*uint8_t i = 0;*/
+
+    /*for (i=0; i < numBlocks)*/
+    /*{*/
+        /*int i = blockIdx.x * KEYAK_STATE_SIZE + threadIdx.x;*/
+        /*int consuming = blockIdx.x * PISTON_RS + threadIdx.x;*/
+        /*uint8_t piston = blockIdx.x;*/
+        /*if (consuming < amt)*/
+        /*{*/
+            /*out[consuming] = state[i] ^ in[consuming];*/
+            /*state[i] = unwrapFlag ? in[consuming] : in[consuming] ^ state[i];*/
+
+            /*// if its last byte for piston ...*/
+            /*if ( threadIdx.x == PISTON_RS-1 || consuming == amt - 1)*/
+            /*{*/
+                /*state[piston * KEYAK_STATE_SIZE + PISTON_CRYPT_END] ^= (threadIdx.x + 1);*/
+            /*}*/
+        /*}*/
+
+        /*if (size > 0)*/
+        /*{*/
+            /*_piston_inject(state, x, size, crypting, doSpark);*/
+        /*}*/
+
+    /*}*/
+/*}*/
+
+
+
+
+
 
 

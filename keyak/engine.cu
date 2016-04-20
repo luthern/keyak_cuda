@@ -198,6 +198,8 @@ void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
         T->length += KEYAK_TAG_SIZE/8;
     }
     e->phase = EngineFresh;
+
+    cudaDeviceSynchronize();
 }
 
 uint8_t offsets_zero[KEYAK_NUM_PISTONS];
@@ -283,24 +285,27 @@ void engine_inject(Engine * e, uint8_t * A, uint8_t doSpark, uint32_t amt)
 // I is a GPU owned buffer
 // O is a GPU owned buffer
 void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt,
-            uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag)
+            uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag,
+            uint32_t rs_size, uint32_t ra_size)
 {
 
     assert(e->phase == EngineFresh);
 
     // TODO is PISTON_RS i.e. 1-1 the best ratio here?
 
+    /*printf("calling crypt\n");*/
     piston_crypt<<<KEYAK_NUM_PISTONS,PISTON_RS>>>
-        (I,O,e->p_state,amt, unwrapFlag, A,size,cryptingFlag, doSpark);
+        (I,O,e->p_state,amt, unwrapFlag, A,size,cryptingFlag, doSpark,
+         rs_size, ra_size);
 
-    if (doSpark)
-    {
-        e->phase = EngineFresh;
-    }
-    else
-    {
+    /*if (doSpark)*/
+    /*{*/
+        /*e->phase = EngineFresh;*/
+    /*}*/
+    /*else*/
+    /*{*/
         e->phase = EngineEndOfMessage;
-    }
+    /*}*/
 
 }
 
