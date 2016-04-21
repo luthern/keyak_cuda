@@ -54,6 +54,7 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt);
 void dump_hex_cuda(uint8_t * buf, uint32_t size);
 void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L);
 void engine_yield(Engine * e, uint8_t * buf, uint32_t size);
+void engine_sync();
 /****               */
 
 void engine_init(Engine * e);

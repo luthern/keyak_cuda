@@ -11,6 +11,7 @@
 void keyak_init(Keyak* k)
 {
     motorist_init(&k->motorist);
+    buffer_init(&k->O,NULL,0);
     buffer_init(&k->T,NULL,0);
     buffer_init(&k->SUV,NULL,0);
 }
@@ -61,26 +62,26 @@ void keyak_add_nonce(Keyak * k, uint8_t * nonce, uint32_t len)
 }
 
 
-void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen, 
-                    uint8_t * metadata, uint32_t metalen)
+void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
+                    uint8_t * metadata, uint32_t metalen, uint8_t * output)
 {
-
     Packet pkt;
     memset(&pkt, 0, sizeof(Packet));
+
     pkt.input = data;
     pkt.input_size = datalen;
     pkt.metadata = metadata;
     pkt.metadata_size = metalen;
 
-    buffer_init(&k->O,NULL, 0);
-
     motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
 
-    motorist_wrap(&k->motorist, &pkt, &k->O, &k->T, 0, 0);
+    motorist_wrap(&k->motorist, &pkt, output, 0);
+
+    motorist_authenticate(&k->motorist, &k->T, 0, 0);
 }
 
 void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen, 
-                    uint8_t * metadata, uint32_t metalen, 
+                    uint8_t * metadata, uint32_t metalen, uint8_t * output,
                     uint8_t * tag, uint32_t taglen)
 {
     Buffer tagbuf;
@@ -94,9 +95,9 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
 
     motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
 
-    buffer_init(&k->O,NULL, 0);
     buffer_init(&tagbuf, tag, taglen);
-    motorist_wrap(&k->motorist,&pkt,&k->O, &tagbuf, 1, 0);
+    motorist_wrap(&k->motorist,&pkt, output, 1);
+    motorist_authenticate(&k->motorist, &tagbuf, 1, 0);
 
     if (k->motorist.phase == MotoristFailed)
     {

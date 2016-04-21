@@ -137,6 +137,7 @@ void engine_init(Engine * e)
 
 void engine_destroy(Engine * e)
 {
+    engine_sync();
     cudaFree(e->p_in);
     cudaFree(e->p_out);
     cudaFree(e->p_offsets);
@@ -309,5 +310,10 @@ void engine_yield(Engine * e, uint8_t * buf, uint32_t size)
     HANDLE_ERROR(cudaMemcpyAsync(buf, e->p_out,
                 size,
                 cudaMemcpyDeviceToHost));
+}
+
+void engine_sync()
+{
+    HANDLE_ERROR(cudaDeviceSynchronize());
 }
 

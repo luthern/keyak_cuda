@@ -63,8 +63,11 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
             return 1;
         }
 
-        // TODO do this on GPU
+        // TODO separate the get_tags from the check
         engine_get_tags(&m->engine, &Tprime, m->engine.p_offsets_1tag);
+
+
+        engine_sync();
         if (!buffer_same(&Tprime,T))
         {
             m->phase = MotoristFailed;
@@ -90,8 +93,7 @@ void motorist_timers_end()
 }
 
 extern void dump_state(Engine * e, int piston);
-void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
-                    Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag)
+void motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
 {
     assert(m->phase == MotoristRiding);
     if ((pkt->input_offset >= pkt->input_size) && (pkt->metadata_offset >= pkt->metadata_size))
@@ -148,8 +150,7 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
             i++;
         }
         timer_start(&tcrypt, "engine_crypt");
-        engine_yield(&m->engine, O->buf, out_offset);
-        O->length += out_offset;
+        engine_yield(&m->engine, O, out_offset);
         timer_accum(&tcrypt);
     }
     while(pkt->input_offset < pkt->input_size);
@@ -173,6 +174,10 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
             i++;
         }
     }
+}
+
+void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t unwrapFlag)
+{
 
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
     {
@@ -183,6 +188,7 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
     timer_start(&ttag, "handle_tag");
     int r = handle_tag(m, 1, T, unwrapFlag);
     timer_accum(&ttag);
+
 }
 
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,

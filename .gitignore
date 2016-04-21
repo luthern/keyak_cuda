@@ -13,3 +13,4 @@ keyak/keyak_ref
 
 # ciphertext
 *.data
+input.txt

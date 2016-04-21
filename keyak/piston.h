@@ -9,7 +9,8 @@ typedef struct _Buffer
 {
     uint32_t offset;
     uint32_t length;
-    uint8_t buf[KEYAK_BUFFER_SIZE];
+    uint8_t * buf;
+    uint8_t buf_stack[KEYAK_BUFFER_SIZE];
 } Buffer;
 
 #define buffer_put(b,d)     ( (b)->buf[(b)->length++] = (d) )

@@ -32,8 +32,8 @@ void motorist_restart(Motorist * m);
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
                     Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag);
 
-void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
-                    Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag);
+void motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag);
+void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t unwrapFlag);
 
 void motorist_destroy(Motorist * m);
 

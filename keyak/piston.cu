@@ -13,8 +13,9 @@
 void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
 {
     memset(b, 0, sizeof(Buffer));
-    memmove(b->buf, data, len);
     b->length = len;
+    b->buf = b->buf_stack;
+    memmove(b->buf, data, len);
 }
 
 __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets, uint8_t * dst, uint8_t amt)
