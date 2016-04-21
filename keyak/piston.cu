@@ -152,7 +152,7 @@ __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
     {
         _piston_inject(state, x, size, crypting, doSpark);
     }
-    else
+    else if (doSpark)
     {
         PERMUTE((uint64_t *)(state + blockIdx.x * KEYAK_STATE_SIZE));
     }
