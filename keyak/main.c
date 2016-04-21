@@ -174,32 +174,21 @@ int main(int argc, char * argv[])
     fflush(outputf);
 
 done:
-    debug();
     keyak_destroy(&sendr);
-    debug();
     keyak_destroy(&recvr);
-    debug();
     free(pt);
-    debug();
     if (metadata != NULL) 
     {
-    debug();
         free(metadata);
     }
    
-    debug();
     if (nonce != NULL) 
     {
-    debug();
         free(nonce);
     }
-    debug();
     free(key);
-    debug();
     fclose(outputf);
-    debug();
     ERR_free_strings();
-    debug();
 
     //engine_destroy(k);
 

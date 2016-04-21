@@ -42,9 +42,11 @@ typedef struct _Packet
     uint8_t * input;
     uint8_t * metadata;
     size_t  input_size;
-    size_t  input_offset;
+    size_t  input_bytes_copied;
+    size_t  input_bytes_processed;
     size_t  metadata_size;
-    size_t  metadata_offset;
+    size_t  metadata_bytes_copied;
+    size_t  metadata_bytes_processed;
     uint8_t merged[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS];
     uint32_t rs_sizes[KEYAK_GPU_BUF_SLOTS];
     uint32_t ra_sizes[KEYAK_GPU_BUF_SLOTS];
@@ -53,7 +55,7 @@ typedef struct _Packet
 uint8_t * coalesce_gpu(Engine * e, Packet * pkt);
 void dump_hex_cuda(uint8_t * buf, uint32_t size);
 void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L);
-void engine_yield(Engine * e, uint8_t * buf, uint32_t size);
+void engine_yield(Engine * e, uint8_t * buf, size_t size);
 void engine_sync();
 /****               */
 

@@ -37,7 +37,6 @@ void dump_hex_cuda(uint8_t * buf, uint32_t size)
 
 #endif
 
-__device__ __constant__ uint8_t ENGINE_INPUT[KEYAK_NUM_PISTONS * KEYAK_STATE_SIZE * KEYAK_GPU_BUF_SLOTS * 2];
 
 __device__ __constant__ uint8_t OFFSETS_CPRIME[8] = {KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8,
                                                        KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8};
@@ -55,16 +54,16 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
     memset(pkt->rs_sizes,0,sizeof(pkt->rs_sizes[0])*(KEYAK_GPU_BUF_SLOTS));
     memset(pkt->ra_sizes,0,sizeof(pkt->ra_sizes[0])*(KEYAK_GPU_BUF_SLOTS));
 
-    if (pkt->input_offset < pkt->input_size)
+    if (pkt->input_bytes_copied < pkt->input_size)
     {
         for (i=0; i < KEYAK_GPU_BUF_SLOTS; i++)
         {
-            uint32_t tocopy = MIN(PISTON_RS * KEYAK_NUM_PISTONS, pkt->input_size - pkt->input_offset);
-            memmove(pkt->merged + j, pkt->input + pkt->input_offset, tocopy);
+            uint32_t tocopy = MIN(PISTON_RS * KEYAK_NUM_PISTONS, pkt->input_size - pkt->input_bytes_copied);
+            memmove(pkt->merged + j, pkt->input + pkt->input_bytes_copied, tocopy);
             pkt->rs_sizes[l++] = tocopy;
             j += (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);
-            pkt->input_offset += tocopy;
-            if (pkt->input_offset == pkt->input_size)
+            pkt->input_bytes_copied += tocopy;
+            if (pkt->input_bytes_copied == pkt->input_size)
             {
                 i++;
                 break;
@@ -73,17 +72,17 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
     }
     total_blocks = i;
 
-    if (pkt->metadata_offset < pkt->metadata_size)
+    if (pkt->metadata_bytes_copied < pkt->metadata_size)
     {
         j=0,l=0;
         for (i=0; i < KEYAK_GPU_BUF_SLOTS; i++)
         {
-            uint32_t tocopy = MIN(PISTON_RA * KEYAK_NUM_PISTONS, pkt->metadata_size - pkt->metadata_offset);
-            memmove(pkt->merged + j + PISTON_RS * KEYAK_NUM_PISTONS, pkt->metadata + pkt->metadata_offset, tocopy);
+            uint32_t tocopy = MIN(PISTON_RA * KEYAK_NUM_PISTONS, pkt->metadata_size - pkt->metadata_bytes_copied);
+            memmove(pkt->merged + j + PISTON_RS * KEYAK_NUM_PISTONS, pkt->metadata + pkt->metadata_bytes_copied, tocopy);
             pkt->ra_sizes[l++] = tocopy;
             j += (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);
-            pkt->metadata_offset += tocopy;
-            if (pkt->metadata_offset == pkt->metadata_size)
+            pkt->metadata_bytes_copied += tocopy;
+            if (pkt->metadata_bytes_copied == pkt->metadata_size)
             {
                 i++;
                 break;
@@ -305,7 +304,7 @@ void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint
 
 }
 
-void engine_yield(Engine * e, uint8_t * buf, uint32_t size)
+void engine_yield(Engine * e, uint8_t * buf, size_t size)
 {
     HANDLE_ERROR(cudaMemcpyAsync(buf, e->p_out,
                 size,

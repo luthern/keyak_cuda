@@ -93,58 +93,51 @@ void motorist_timers_end()
 }
 
 extern void dump_state(Engine * e, int piston);
-void motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
+int motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
 {
-    assert(m->phase == MotoristRiding);
-    if ((pkt->input_offset >= pkt->input_size) && (pkt->metadata_offset >= pkt->metadata_size))
-    {
-        timer_start(&tinject, "engine_inject");
-        engine_inject(&m->engine,NULL,0,0);
-        timer_accum(&tinject);
-    }
-    uint8_t bufsel = 0;
 
-    int isize;
-    int asize;
-    uint32_t offset, rs_offset = 0, ra_offset = 0, out_offset = 0;
+    /*if ((pkt->input_bytes_copied >= pkt->input_size) && (pkt->metadata_bytes_copied >= pkt->metadata_size))*/
+    /*{*/
+        /*timer_start(&tinject, "engine_inject");*/
+        /*engine_inject(&m->engine,NULL,0,0);*/
+        /*timer_accum(&tinject);*/
+    /*}*/
+
+    uint32_t offset, out_offset = 0;
 
     uint8_t * block;
 
 
-    do
+    if (pkt->input_bytes_copied < pkt->input_size)
     {
         block = coalesce_gpu(&m->engine, pkt);
         uint8_t i = 0;
         out_offset = 0;
 
-        /*printf("\nabsorbed %ld/%ld input\n", pkt->input_offset,pkt->input_size);*/
 
         while((i < KEYAK_GPU_BUF_SLOTS) && pkt->rs_sizes[i])
         {
             
-            uint8_t do_spark = 0;
-            /*printf("i: %d < %d ? %d\n",i, KEYAK_GPU_BUF_SLOTS,i<KEYAK_GPU_BUF_SLOTS);*/
 
-            offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
+            uint32_t offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
 
             timer_start(&tcrypt, "engine_crypt");
 
-            // uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag)
-            /*printf("crypting %d bytes\n",pkt->rs_sizes[i]);*/
-            do_spark = ((rs_offset + pkt->rs_sizes[i]) < pkt->input_size || (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size);
+            uint8_t do_spark = ((pkt->input_bytes_processed + pkt->rs_sizes[i]) < pkt->input_size 
+                    || (pkt->metadata_bytes_processed + pkt->ra_sizes[i]) < pkt->metadata_size);
 
             engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i],
                     block + offset + PISTON_RS * KEYAK_NUM_PISTONS, do_spark, pkt->ra_sizes[i], 1);
 
             out_offset += pkt->rs_sizes[i];
 
-            rs_offset += pkt->rs_sizes[i];
+            pkt->input_bytes_processed += pkt->rs_sizes[i];
 
 
             timer_accum(&tcrypt);
 
 
-            ra_offset += pkt->ra_sizes[i];
+            pkt->metadata_bytes_processed += pkt->ra_sizes[i];
 
 
             i++;
@@ -152,10 +145,14 @@ void motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
         timer_start(&tcrypt, "engine_crypt");
         engine_yield(&m->engine, O, out_offset);
         timer_accum(&tcrypt);
-    }
-    while(pkt->input_offset < pkt->input_size);
 
-    while(pkt->input_offset < pkt->input_size)
+        if (pkt->input_bytes_copied < pkt->input_size)
+        {
+            return MOTORIST_NOT_DONE;
+        }
+    }
+
+    if (pkt->metadata_bytes_copied < pkt->metadata_size)
     {
         block = coalesce_gpu(&m->engine, pkt);
         uint8_t i = 0;
@@ -167,18 +164,22 @@ void motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
             timer_start(&tinject, "engine_inject");
 
             engine_inject(&m->engine, block + offset + PISTON_RS * KEYAK_NUM_PISTONS,
-                    (ra_offset + m->input_ra_size[i]) < pkt->metadata_size, m->input_ra_size[i]);
+                    (pkt->metadata_bytes_processed + m->input_ra_size[i]) < pkt->metadata_size, m->input_ra_size[i]);
 
-            ra_offset += m->input_ra_size[i];
+            pkt->metadata_bytes_processed += m->input_ra_size[i];
             timer_accum(&tinject);
             i++;
         }
+        if (pkt->metadata_bytes_copied < pkt->metadata_size)
+        {
+            return MOTORIST_NOT_DONE;
+        }
     }
+    return MOTORIST_DONE;
 }
 
 void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t unwrapFlag)
 {
-
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
     {
         timer_start(&tknot, "make_knot");
@@ -188,7 +189,6 @@ void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t
     timer_start(&ttag, "handle_tag");
     int r = handle_tag(m, 1, T, unwrapFlag);
     timer_accum(&ttag);
-
 }
 
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,

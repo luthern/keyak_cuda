@@ -75,7 +75,8 @@ void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
 
     motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
 
-    motorist_wrap(&k->motorist, &pkt, output, 0);
+    while(motorist_wrap(&k->motorist, &pkt, output, 0) == MOTORIST_NOT_DONE)
+    {}
 
     motorist_authenticate(&k->motorist, &k->T, 0, 0);
 }
@@ -96,7 +97,8 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
 
     buffer_init(&tagbuf, tag, taglen);
-    motorist_wrap(&k->motorist,&pkt, output, 1);
+    while(motorist_wrap(&k->motorist,&pkt, output, 1) == MOTORIST_NOT_DONE)
+    {}
     motorist_authenticate(&k->motorist, &tagbuf, 1, 0);
 
     if (k->motorist.phase == MotoristFailed)
