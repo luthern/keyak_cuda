@@ -13,7 +13,18 @@ void motorist_init(Motorist * m)
 
     m->phase = MotoristReady;
 
+    memset(&m->pkt, 0, sizeof(Packet));
+
     engine_init(&m->engine);
+}
+
+void motorist_fuel(Motorist * m, uint8_t * input, uint32_t ilen, uint8_t * metadata, uint32_t mlen)
+{
+    memset(&m->pkt, 0, sizeof(Packet));
+    m->pkt.input = input;
+    m->pkt.input_size = ilen;
+    m->pkt.metadata = metadata;
+    m->pkt.metadata_size = mlen;
 }
 
 void motorist_restart(Motorist * m)
@@ -93,7 +104,7 @@ void motorist_timers_end()
 }
 
 extern void dump_state(Engine * e, int piston);
-int motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
+int motorist_wrap(Motorist * m, uint8_t * O, uint8_t unwrapFlag)
 {
 
     /*if ((pkt->input_bytes_copied >= pkt->input_size) && (pkt->metadata_bytes_copied >= pkt->metadata_size))*/
@@ -102,6 +113,8 @@ int motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
         /*engine_inject(&m->engine,NULL,0,0);*/
         /*timer_accum(&tinject);*/
     /*}*/
+
+    Packet * pkt = &m->pkt;
 
     uint32_t offset, out_offset = 0;
 
@@ -114,6 +127,7 @@ int motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
         uint8_t i = 0;
         out_offset = 0;
 
+        /*printf ("wrap: input_size %ld\n  metadata_size %ld\n", pkt->input_size,pkt->metadata_size);*/
 
         while((i < KEYAK_GPU_BUF_SLOTS) && pkt->rs_sizes[i])
         {

@@ -62,17 +62,10 @@ void keyak_add_nonce(Keyak * k, uint8_t * nonce, uint32_t len)
 void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
                     uint8_t * metadata, uint32_t metalen, uint8_t * output)
 {
-    Packet pkt;
-    memset(&pkt, 0, sizeof(Packet));
-
-    pkt.input = data;
-    pkt.input_size = datalen;
-    pkt.metadata = metadata;
-    pkt.metadata_size = metalen;
-
     motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
+    motorist_fuel(&k->motorist, data, datalen, metadata, metalen);
 
-    while(motorist_wrap(&k->motorist, &pkt, output, 0) == MOTORIST_NOT_DONE)
+    while(motorist_wrap(&k->motorist, output, 0) == MOTORIST_NOT_DONE)
     {}
     motorist_authenticate(&k->motorist, &k->T, 0, 0);
 }
@@ -82,18 +75,11 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
                     uint8_t * tag, uint32_t taglen)
 {
     Buffer tagbuf;
-
-    Packet pkt;
-    memset(&pkt, 0, sizeof(Packet));
-    pkt.input = data;
-    pkt.input_size = datalen;
-    pkt.metadata = metadata;
-    pkt.metadata_size = metalen;
-
     motorist_start_engine(&k->motorist, &k->SUV, 0, &k->T, 0, 0);
+    motorist_fuel(&k->motorist, data, datalen, metadata, metalen);
 
     buffer_init(&tagbuf, tag, taglen);
-    while(motorist_wrap(&k->motorist,&pkt, output, 1) == MOTORIST_NOT_DONE)
+    while(motorist_wrap(&k->motorist, output, 1) == MOTORIST_NOT_DONE)
     {}
     motorist_authenticate(&k->motorist, &tagbuf, 1, 0);
 

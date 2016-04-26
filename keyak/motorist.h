@@ -17,6 +17,7 @@ typedef enum
 
 typedef struct _Motorist
 {
+    Packet pkt;
     MotoristState phase;
     Engine engine;
 
@@ -29,13 +30,15 @@ typedef struct _Motorist
 } Motorist;
 
 void motorist_init(Motorist * m);
+//void motorist_fuel(Motorist * m, uint8_t * input, size_t ilen, uint8_t * metadata, size_t mlen);
+void motorist_fuel(Motorist * m, uint8_t * input, uint32_t ilen, uint8_t * metadata, uint32_t mlen);
 
 void motorist_restart(Motorist * m);
 
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
                     Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag);
 
-int motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag);
+int motorist_wrap(Motorist * m, uint8_t * O, uint8_t unwrapFlag);
 void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t unwrapFlag);
 
 void motorist_destroy(Motorist * m);
