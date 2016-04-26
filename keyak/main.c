@@ -161,7 +161,7 @@ int main(int argc, char * argv[])
 
     motorist_timers_end();
     
-    if (write(fileno(outputf),sendr.O.buf,sendr.O.length) == -1)
+    if (write(fileno(outputf),ot,ptlen) == -1)
     {
         perror("write");
         goto done;

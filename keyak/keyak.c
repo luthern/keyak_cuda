@@ -11,7 +11,6 @@
 void keyak_init(Keyak* k)
 {
     motorist_init(&k->motorist);
-    buffer_init(&k->O,NULL,0);
     buffer_init(&k->T,NULL,0);
     buffer_init(&k->SUV,NULL,0);
 }
@@ -26,8 +25,6 @@ void keyak_restart(Keyak * k)
     motorist_restart(&k->motorist);
     k->T.offset = 0;
     k->T.length= 0;
-    k->O.offset = 0;
-    k->O.length= 0;
     k->SUV.offset = 0;
     k->SUV.length;
 }
@@ -77,7 +74,6 @@ void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
 
     while(motorist_wrap(&k->motorist, &pkt, output, 0) == MOTORIST_NOT_DONE)
     {}
-
     motorist_authenticate(&k->motorist, &k->T, 0, 0);
 }
 
