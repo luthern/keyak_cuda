@@ -180,6 +180,7 @@ int motorist_wrap(Motorist * m, Packet * pkt, uint8_t * O, uint8_t unwrapFlag)
 
 void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t unwrapFlag)
 {
+    // TODO consider pipeline here
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
     {
         timer_start(&tknot, "make_knot");

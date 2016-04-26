@@ -32,7 +32,7 @@ typedef struct _Engine
     uint8_t * p_offsets_cprime;
     uint8_t * p_offsets_1tag;
 
-    cudaStream_t p_streams[KEYAK_NUM_PISTONS];
+    cudaStream_t stream;
 
 } Engine;
 
