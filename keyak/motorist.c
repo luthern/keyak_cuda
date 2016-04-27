@@ -107,7 +107,7 @@ void motorist_timers_end()
 }
 
 extern void dump_state(Engine * e, int piston);
-int motorist_wrap(Motorist * m, uint8_t * O, uint8_t unwrapFlag)
+int motorist_wrap(Motorist * m, uint8_t unwrapFlag)
 {
 
     /*if ((pkt->input_bytes_copied >= pkt->input_size) && (pkt->metadata_bytes_copied >= pkt->metadata_size))*/
@@ -160,7 +160,7 @@ int motorist_wrap(Motorist * m, uint8_t * O, uint8_t unwrapFlag)
             i++;
         }
         timer_start(&tcrypt, "engine_crypt");
-        engine_yield(&m->engine, O, out_offset);
+        engine_yield(&m->engine, m->output, out_offset);
         timer_accum(&tcrypt);
 
         if (pkt->input_bytes_copied < pkt->input_size)

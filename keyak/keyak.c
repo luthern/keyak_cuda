@@ -88,7 +88,7 @@ void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
 
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
     {
-        while(motorist_wrap(mptr, output, 0) == MOTORIST_NOT_DONE)
+        while(motorist_wrap(mptr, 0) == MOTORIST_NOT_DONE)
         {}
     }
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
@@ -115,7 +115,7 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
 
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
     {
-        while(motorist_wrap(mptr, output, 1) == MOTORIST_NOT_DONE)
+        while(motorist_wrap(mptr, 1) == MOTORIST_NOT_DONE)
         {}
     }
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))

@@ -170,7 +170,7 @@ int main(int argc, char * argv[])
 
     motorist_timers_end();
     
-    if (write(fileno(outputf),ot,ptlen) == -1)
+    if (write(fileno(outputf),fleet_first(fsend)->output,ptlen) == -1)
     {
         perror("write");
         goto done;
