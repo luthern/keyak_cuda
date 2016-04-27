@@ -1,7 +1,0 @@
-
-100 sessions each encryption and decrypting 4001 bytes: ~30000000.0 ns
-    - time spent in engine_crypt():                       3183572.0 ns
-    - time spent in engine_inject():                     10702021.0 ns
-    - time spent in make_knot():                         12093559.0 ns
-    - time spent in handle_tag():                         5220408.0
-
