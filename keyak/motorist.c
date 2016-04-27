@@ -189,6 +189,9 @@ int motorist_wrap(Motorist * m, uint8_t * O, uint8_t unwrapFlag)
             return MOTORIST_NOT_DONE;
         }
     }
+
+    m->phase = MotoristDone;
+
     return MOTORIST_DONE;
 }
 

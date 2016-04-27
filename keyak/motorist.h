@@ -13,6 +13,7 @@ typedef enum
     MotoristReady = 0,
     MotoristRiding,
     MotoristFailed,
+    MotoristDone
 } MotoristState;
 
 typedef struct _Motorist
@@ -20,6 +21,7 @@ typedef struct _Motorist
     Packet pkt;
     MotoristState phase;
     Engine engine;
+    uint8_t * output;
 
 #define GPU_NUM_INPUTS  8
     // gpu

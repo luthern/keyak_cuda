@@ -8,6 +8,7 @@
 #include <openssl/err.h>
 
 #include "keyak.h"
+#include "fleet.h"
 #include "misc.h"
 
 static void openssl_die()
@@ -92,9 +93,11 @@ int main(int argc, char * argv[])
     }
 
     engine_precompute();
+    Fleet * frecv = fleet_new(10,1);
+    Fleet * fsend = fleet_new(10,1);
 
-    keyak_init(&sendr);
-    keyak_init(&recvr);
+    keyak_init(&sendr, fsend);
+    keyak_init(&recvr, frecv);
 
     keylen = hex2bin(&key,key_hex);
 
@@ -135,6 +138,7 @@ int main(int argc, char * argv[])
         goto done;
     }
 
+
     struct timer t, tinit;
     memset(&t, 0, sizeof(struct timer));
     int i;
@@ -149,11 +153,16 @@ int main(int argc, char * argv[])
 
         timer_accum(&tinit);
 
+        fleet_add_stream(fsend, pt,ptlen,metadata,mlen,ot,ptlen);
+
         keyak_encrypt(&sendr, pt, ptlen, metadata, mlen, ot);
+        
+        fleet_add_stream(frecv, ot,ptlen,metadata,mlen,pt,ptlen);
 
         keyak_decrypt(&recvr, ot, ptlen,
                 metadata, mlen, pt,
                 sendr.T.buf, sendr.T.length);
+
     }
 
     timer_end(&t);
@@ -189,6 +198,9 @@ done:
     free(key);
     fclose(outputf);
     ERR_free_strings();
+
+    fleet_destroy(frecv);
+    fleet_destroy(fsend);
 
     //engine_destroy(k);
 
