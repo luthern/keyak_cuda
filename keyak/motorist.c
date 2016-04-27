@@ -18,13 +18,17 @@ void motorist_init(Motorist * m)
     engine_init(&m->engine);
 }
 
-void motorist_fuel(Motorist * m, uint8_t * input, uint32_t ilen, uint8_t * metadata, uint32_t mlen)
+void motorist_fuel(Motorist * m, uint8_t * input, uint32_t ilen, uint8_t * metadata, uint32_t mlen, uint8_t * tag)
 {
     memset(&m->pkt, 0, sizeof(Packet));
     m->pkt.input = input;
     m->pkt.input_size = ilen;
     m->pkt.metadata = metadata;
     m->pkt.metadata_size = mlen;
+    if (tag != NULL)
+    {
+        memmove(m->tag, tag, KEYAK_TAG_SIZE/8);
+    }
 }
 
 void motorist_restart(Motorist * m)
@@ -55,16 +59,15 @@ void motorist_destroy(Motorist * m)
 
 // 1 success
 // 0 fail
-static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
+static int handle_tag(Motorist * m, uint8_t tagFlag, uint8_t * T,
                     uint8_t unwrapFlag)
 {
-    Buffer Tprime;
-    buffer_init(&Tprime, NULL, 0);
+    uint8_t Tprime[KEYAK_TAG_SIZE/8];
 
     if (!tagFlag)
     {
         // move engine state along ..
-        engine_get_tags(&m->engine,&Tprime, m->engine.p_offsets_zero);
+        engine_get_tags(&m->engine,Tprime, m->engine.p_offsets_zero);
     }
     else
     {
@@ -75,11 +78,11 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
         }
 
         // TODO separate the get_tags from the check
-        engine_get_tags(&m->engine, &Tprime, m->engine.p_offsets_1tag);
+        engine_get_tags(&m->engine, Tprime, m->engine.p_offsets_1tag);
 
 
         engine_sync();
-        if (!buffer_same(&Tprime,T))
+        if (memcmp(Tprime, T, KEYAK_TAG_SIZE/8) != 0)
         {
             m->phase = MotoristFailed;
             return 0;
@@ -195,7 +198,7 @@ int motorist_wrap(Motorist * m, uint8_t * O, uint8_t unwrapFlag)
     return MOTORIST_DONE;
 }
 
-void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t unwrapFlag)
+void motorist_authenticate(Motorist * m, uint8_t * T, uint8_t forgetFlag, uint8_t unwrapFlag)
 {
     // TODO consider pipeline here
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
@@ -210,7 +213,7 @@ void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t
 }
 
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
-                    Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag)
+                    uint8_t * T, uint8_t unwrapFlag, uint8_t forgetFlag)
 {
     timer_start(&starttag,"start_engine");
     assert(m->phase == MotoristReady);

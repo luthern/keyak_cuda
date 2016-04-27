@@ -78,7 +78,7 @@ void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
     {
         /*printf( "motorist ready? %d\n",mptr->phase == MotoristReady);*/
-        motorist_start_engine(mptr, &k->SUV, 0, &k->T, 0, 0);
+        motorist_start_engine(mptr, &k->SUV, 0, mptr->tag, 0, 0);
     }
 
     /*for(mptr = fleet_first(); !fleet_end(); mptr = fleet_next())*/
@@ -93,7 +93,7 @@ void keyak_encrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     }
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
     {
-        motorist_authenticate(mptr, &k->T, 0, 0);
+        motorist_authenticate(mptr, mptr->tag, 0, 0);
     }
 }
 
@@ -101,19 +101,17 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
                     uint8_t * metadata, uint32_t metalen, uint8_t * output,
                     uint8_t * tag, uint32_t taglen)
 {
-    Buffer tagbuf;
     Motorist * mptr;
 
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
     {
         /*printf( "motorist ready? %d\n",mptr->phase == MotoristReady);*/
-        motorist_start_engine(mptr, &k->SUV, 0, &k->T, 0, 0);
+        motorist_start_engine(mptr, &k->SUV, 0, mptr->tag, 0, 0);
     }
 
 
     /*motorist_fuel(&k->motorist, data, datalen, metadata, metalen);*/
 
-    buffer_init(&tagbuf, tag, taglen);
 
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
     {
@@ -122,7 +120,7 @@ void keyak_decrypt(Keyak * k, uint8_t * data, uint32_t datalen,
     }
     for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
     {
-        motorist_authenticate(mptr, &tagbuf, 1, 0);
+        motorist_authenticate(mptr, mptr->tag, 1, 0);
     }
 
     int i = 0;

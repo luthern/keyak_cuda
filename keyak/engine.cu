@@ -169,7 +169,7 @@ void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L)
     e->phase = EngineFresh;
 }
 
-void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
+void engine_get_tags(Engine * e, uint8_t * T, uint8_t * L)
 {
     assert(e->phase == EngineEndOfMessage);
     uint8_t amt = (L == e->p_offsets_cprime) ? KEYAK_CPRIME/8 : 0;
@@ -181,23 +181,21 @@ void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
         if (L == e->p_offsets_cprime)
         {
             HANDLE_ERROR(
-                    cudaMemcpyAsync(T->buf + T->length,
+                    cudaMemcpyAsync(T,
                         e->p_tmp,
                         (KEYAK_CPRIME / 8) * KEYAK_NUM_PISTONS, cudaMemcpyDeviceToHost, e->stream)
                     );
-            T->length += (KEYAK_CPRIME / 8) * KEYAK_NUM_PISTONS;
         }
     }
     else
     {
         assert(KEYAK_TAG_SIZE/8 <= PISTON_RS);
         HANDLE_ERROR(
-                cudaMemcpyAsync(T->buf + T->length,
+                cudaMemcpyAsync(T,
                     e->p_state,
                     KEYAK_TAG_SIZE/8, cudaMemcpyDeviceToHost, e->stream)
                 );
 
-        T->length += KEYAK_TAG_SIZE/8;
     }
     e->phase = EngineFresh;
 }

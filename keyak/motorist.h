@@ -22,6 +22,7 @@ typedef struct _Motorist
     MotoristState phase;
     Engine engine;
     uint8_t * output;
+    uint8_t tag[KEYAK_TAG_SIZE/8];
 
 #define GPU_NUM_INPUTS  8
     // gpu
@@ -33,15 +34,15 @@ typedef struct _Motorist
 
 void motorist_init(Motorist * m);
 //void motorist_fuel(Motorist * m, uint8_t * input, size_t ilen, uint8_t * metadata, size_t mlen);
-void motorist_fuel(Motorist * m, uint8_t * input, uint32_t ilen, uint8_t * metadata, uint32_t mlen);
+void motorist_fuel(Motorist * m, uint8_t * input, uint32_t ilen, uint8_t * metadata, uint32_t mlen, uint8_t * tag);
 
 void motorist_restart(Motorist * m);
 
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
-                    Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag);
+                    uint8_t * T, uint8_t unwrapFlag, uint8_t forgetFlag);
 
 int motorist_wrap(Motorist * m, uint8_t * O, uint8_t unwrapFlag);
-void motorist_authenticate(Motorist * m, Buffer * T, uint8_t forgetFlag, uint8_t unwrapFlag);
+void motorist_authenticate(Motorist * m, uint8_t * T, uint8_t forgetFlag, uint8_t unwrapFlag);
 
 void motorist_destroy(Motorist * m);
 

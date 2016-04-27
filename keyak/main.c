@@ -153,11 +153,11 @@ int main(int argc, char * argv[])
 
         timer_accum(&tinit);
 
-        fleet_add_stream(fsend, pt,ptlen,metadata,mlen,ot,ptlen);
+        fleet_add_stream(fsend, pt,ptlen,metadata,mlen,ot,ptlen, NULL);
 
         keyak_encrypt(&sendr, pt, ptlen, metadata, mlen, ot);
         
-        fleet_add_stream(frecv, ot,ptlen,metadata,mlen,pt,ptlen);
+        fleet_add_stream(frecv, ot,ptlen,metadata,mlen,pt,ptlen, fleet_first(fsend)->tag);
 
         keyak_decrypt(&recvr, ot, ptlen,
                 metadata, mlen, pt,
@@ -175,7 +175,7 @@ int main(int argc, char * argv[])
         perror("write");
         goto done;
     }
-    if (write(fileno(outputf),sendr.T.buf,sendr.T.length) == -1)
+    if (write(fileno(outputf),fleet_first(fsend)->tag,KEYAK_TAG_SIZE/8) == -1)
     {
         perror("write");
         goto done;

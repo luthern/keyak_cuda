@@ -24,7 +24,7 @@ void fleet_destroy(Fleet * f)
     free(f);
 }
 
-void fleet_add_stream(Fleet * f,uint8_t * input, size_t isize, uint8_t * metadata, size_t msize, uint8_t * output, size_t osize)
+void fleet_add_stream(Fleet * f,uint8_t * input, size_t isize, uint8_t * metadata, size_t msize, uint8_t * output, size_t osize, uint8_t * tag)
 {
     if (f->streams >= FLEET_CAPACITY)
     {
@@ -38,7 +38,7 @@ void fleet_add_stream(Fleet * f,uint8_t * input, size_t isize, uint8_t * metadat
         motorist_init(m);
     }
 
-    motorist_fuel(m,input,isize,metadata,msize);
+    motorist_fuel(m,input,isize,metadata,msize,tag);
     /*printf( "motorist ready? %d\n",m->phase == MotoristReady);*/
     m->output = output;
     f->streams++;

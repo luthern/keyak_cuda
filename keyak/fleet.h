@@ -21,7 +21,7 @@ typedef struct _Fleet
 
 Fleet * fleet_new(int num, int allocate);
 
-void fleet_add_stream(Fleet * f, uint8_t * input, size_t isize, uint8_t * metadata, size_t msize, uint8_t * output, size_t osize);
+void fleet_add_stream(Fleet * f,uint8_t * input, size_t isize, uint8_t * metadata, size_t msize, uint8_t * output, size_t osize, uint8_t * tag);
 
 void fleet_preallocate(Fleet * f, int num);
 
