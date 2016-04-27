@@ -155,13 +155,11 @@ int main(int argc, char * argv[])
 
         fleet_add_stream(fsend, pt,ptlen,metadata,mlen,ot,ptlen, NULL);
 
-        keyak_encrypt(&sendr, pt, ptlen, metadata, mlen, ot);
+        keyak_encrypt(&sendr);
         
         fleet_add_stream(frecv, ot,ptlen,metadata,mlen,pt,ptlen, fleet_first(fsend)->tag);
 
-        keyak_decrypt(&recvr, ot, ptlen,
-                metadata, mlen, pt,
-                sendr.T.buf, sendr.T.length);
+        keyak_decrypt(&recvr);
 
     }
 
