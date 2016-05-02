@@ -5,15 +5,17 @@
 #include "engine.h"
 #include "defs.h"
 
-#define MOTORIST_NOT_DONE   1
-#define MOTORIST_DONE       0
+#define MOTORIST_NOT_WRAPPED   1
+#define MOTORIST_WRAPPED       0
 
 typedef enum
 {
     MotoristReady = 0,
     MotoristRiding,
     MotoristFailed,
-    MotoristDone
+    MotoristWrapped,
+    MotoristDone,
+    MotoristWaiting
 } MotoristState;
 
 typedef struct _Motorist
@@ -22,7 +24,10 @@ typedef struct _Motorist
     MotoristState phase;
     Engine engine;
     uint8_t * output;
+    // for wrapping
     uint8_t tag[KEYAK_TAG_SIZE/8];
+    //for unwrapping
+    //uint8_t * auth_tag;
 
 #define GPU_NUM_INPUTS  8
     // gpu

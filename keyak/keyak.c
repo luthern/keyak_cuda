@@ -70,66 +70,131 @@ void keyak_add_nonce(Keyak * k, uint8_t * nonce, uint32_t len)
 
 
 
+static int fleet_exhausted(Fleet * f)
+{
+    
+    Motorist * mptr;
+    for(mptr = fleet_first(f); !fleet_end(f); mptr = fleet_next(f))
+    {
+        if (mptr->phase != MotoristDone)
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
 void keyak_encrypt(Keyak * k)
 {
-    Motorist * mptr;
+    int i;
 
-    for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
+    do
     {
-        /*printf( "motorist ready? %d\n",mptr->phase == MotoristReady);*/
-        motorist_start_engine(mptr, &k->SUV, 0, mptr->tag, 0, 0);
-    }
+        for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
+        {
+            switch(mptr->phase)
+            {
+                case MotoristReady:
+                    /*printf("MotoristREady\n");*/
+                    motorist_start_engine(mptr, &k->SUV, 0, mptr->tag, 0, 0);
+                    break;
+                case MotoristRiding:
+                    /*printf("MotoristRiding\n");*/
+                    motorist_wrap(mptr, 0);
+                    break;
+                case MotoristWrapped:
+                    /*printf("MotoristWrapped\n");*/
+                    motorist_authenticate(mptr, mptr->tag, 0, 0);
+                    break;
+                case MotoristFailed:
+                    /*printf("MotoristFailed\n");*/
+                    fprintf(stderr,"authentication failed for %d stream\n", i);
+                    exit(1);
+                    break;
+                case MotoristDone:
+                    /*printf("MotoristDone\n");*/
+                    break;
+                case MotoristWaiting:
+                    /*printf("MotoristWaiting\n");*/
+                    break;
+                default:
+                    fprintf(stderr,"incorrect state for stream %d\n", i);
+                    break;
 
-    /*for(mptr = fleet_first(); !fleet_end(); mptr = fleet_next())*/
-    /*{*/
-        /*motorist_fuel(mptr, data, datalen, metadata, metalen);*/
-    /*}*/
+            }
+            i++;
+        }
+    }
+    while(!fleet_exhausted(k->fleet));
 
-    for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
-    {
-        while(motorist_wrap(mptr, 0) == MOTORIST_NOT_DONE)
-        {}
-    }
-    for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
-    {
-        motorist_authenticate(mptr, mptr->tag, 0, 0);
-    }
 }
 
 void keyak_decrypt(Keyak * k)
 {
     Motorist * mptr;
-
-    for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
-    {
-        /*printf( "motorist ready? %d\n",mptr->phase == MotoristReady);*/
-        motorist_start_engine(mptr, &k->SUV, 0, mptr->tag, 0, 0);
-    }
-
-
-    /*motorist_fuel(&k->motorist, data, datalen, metadata, metalen);*/
-
-
-    for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
-    {
-        while(motorist_wrap(mptr, 1) == MOTORIST_NOT_DONE)
-        {}
-    }
-    for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
-    {
-        motorist_authenticate(mptr, mptr->tag, 1, 0);
-    }
-
     int i = 0;
-    for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
+
+    do
     {
-        if (mptr->phase == MotoristFailed)
+        for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
         {
-            fprintf(stderr,"authentication failed for %d stream\n", i);
-            exit(1);
+            switch(mptr->phase)
+            {
+                case MotoristReady:
+                    /*printf("MotoristREady\n");*/
+                    motorist_start_engine(mptr, &k->SUV, 0, mptr->tag, 0, 0);
+                    break;
+                case MotoristRiding:
+                    /*printf("MotoristRiding\n");*/
+                    motorist_wrap(mptr, 1);
+                    break;
+                case MotoristWrapped:
+                    /*printf("MotoristWrapped\n");*/
+                    motorist_authenticate(mptr, mptr->tag, 1, 0);
+                    break;
+                case MotoristFailed:
+                    /*printf("MotoristFailed\n");*/
+                    fprintf(stderr,"authentication failed for %d stream\n", i);
+                    exit(1);
+                    break;
+                case MotoristDone:
+                    /*printf("MotoristDone\n");*/
+                    break;
+                case MotoristWaiting:
+                    /*printf("MotoristWaiting\n");*/
+                    break;
+                default:
+                    fprintf(stderr,"incorrect state for stream %d\n", i);
+                    break;
+
+            }
+            i++;
         }
-        i++;
     }
+    while(!fleet_exhausted(k->fleet));
+
+
+    /*[>motorist_fuel(&k->motorist, data, datalen, metadata, metalen);<]*/
+
+
+    /*for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))*/
+    /*{*/
+        /*while(motorist_wrap(mptr, 1) == MOTORIST_NOT_DONE)*/
+        /*{}*/
+    /*}*/
+    /*for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))*/
+    /*{*/
+        /*motorist_authenticate(mptr, mptr->tag, 1, 0);*/
+    /*}*/
+
+    /*for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))*/
+    /*{*/
+        /*if (mptr->phase == MotoristFailed)*/
+        /*{*/
+            /*exit(1);*/
+        /*}*/
+    /*}*/
 
 }
 

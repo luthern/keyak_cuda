@@ -165,7 +165,7 @@ int motorist_wrap(Motorist * m, uint8_t unwrapFlag)
 
         if (pkt->input_bytes_copied < pkt->input_size)
         {
-            return MOTORIST_NOT_DONE;
+            return MOTORIST_NOT_WRAPPED;
         }
     }
 
@@ -189,13 +189,13 @@ int motorist_wrap(Motorist * m, uint8_t unwrapFlag)
         }
         if (pkt->metadata_bytes_copied < pkt->metadata_size)
         {
-            return MOTORIST_NOT_DONE;
+            return MOTORIST_NOT_WRAPPED;
         }
     }
 
-    m->phase = MotoristDone;
+    m->phase = MotoristWrapped;
 
-    return MOTORIST_DONE;
+    return MOTORIST_WRAPPED;
 }
 
 void motorist_authenticate(Motorist * m, uint8_t * T, uint8_t forgetFlag, uint8_t unwrapFlag)
@@ -209,12 +209,14 @@ void motorist_authenticate(Motorist * m, uint8_t * T, uint8_t forgetFlag, uint8_
     }
     timer_start(&ttag, "handle_tag");
     int r = handle_tag(m, 1, T, unwrapFlag);
+    m->phase = MotoristDone;
     timer_accum(&ttag);
 }
 
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
                     uint8_t * T, uint8_t unwrapFlag, uint8_t forgetFlag)
 {
+    // TODO consider pipeline here
     timer_start(&starttag,"start_engine");
     assert(m->phase == MotoristReady);
 
