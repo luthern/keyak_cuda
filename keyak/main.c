@@ -93,8 +93,8 @@ int main(int argc, char * argv[])
     }
 
     engine_precompute();
-    Fleet * frecv = fleet_new(10,1);
-    Fleet * fsend = fleet_new(10,1);
+    Fleet * frecv = fleet_new(10,10);
+    Fleet * fsend = fleet_new(10,10);
 
     keyak_init(&sendr, fsend);
     keyak_init(&recvr, frecv);
@@ -140,32 +140,44 @@ int main(int argc, char * argv[])
 
 
     struct timer t, tinit;
-    memset(&t, 0, sizeof(struct timer));
-    int i;
-    timer_start(&t, "10000 sessions");
+    int i,j,k;
 
-    for (i = 0; i < iterations; i++)
+
+
+    for (j=1; j < 20; j++)
     {
-        timer_start(&tinit,"keyak_initx2");
 
-        keyak_restart(&sendr);
-        keyak_restart(&recvr);
+        memset(&t, 0, sizeof(struct timer));
+        timer_start(&t, "10000 sessions");
 
-        timer_accum(&tinit);
+        printf("STREAMS: %d\n", j);
+        for (i = 0; i < iterations; i++)
+        {
+            timer_start(&tinit,"keyak_initx2");
 
-        fleet_add_stream(fsend, pt,ptlen,metadata,mlen,ot,ptlen, NULL);
+            keyak_restart(&sendr);
+            keyak_restart(&recvr);
 
-        keyak_encrypt(&sendr);
-        
-        fleet_add_stream(frecv, ot,ptlen,metadata,mlen,pt,ptlen, fleet_first(fsend)->tag);
+            timer_accum(&tinit);
 
-        keyak_decrypt(&recvr);
+            for(k=0; k< j; k++)
+            {
+                fleet_add_stream(fsend, pt,ptlen,metadata,mlen,ot,ptlen, NULL);
+            }
+
+            keyak_encrypt(&sendr);
+
+            /*fleet_add_stream(frecv, ot,ptlen,metadata,mlen,pt,ptlen, fleet_first(fsend)->tag);*/
+
+            /*keyak_decrypt(&recvr);*/
+        }
+
+        timer_end(&t);
+        timer_end(&tinit);
+        engine_sync();
+
 
     }
-
-    timer_end(&t);
-    timer_end(&tinit);
-
     motorist_timers_end();
     
     if (write(fileno(outputf),fleet_first(fsend)->output,ptlen) == -1)
