@@ -107,6 +107,18 @@ void motorist_timers_end()
 }
 
 extern void dump_state(Engine * e, int piston);
+
+static unsigned int total_amt(unsigned int * sizes)
+{
+    unsigned int amt = 0;
+    int i = 0;
+    for (; i < KEYAK_GPU_BUF_SLOTS; i++)
+    {
+        amt += sizes[i];
+    }
+    return amt;
+}
+
 int motorist_wrap(Motorist * m, uint8_t unwrapFlag)
 {
 
@@ -130,35 +142,47 @@ int motorist_wrap(Motorist * m, uint8_t unwrapFlag)
         uint8_t i = 0;
         out_offset = 0;
 
+        int ra_amt = total_amt(pkt->ra_sizes);
+        int rs_amt = total_amt(pkt->rs_sizes);
+
+        engine_crypt(&m->engine, block, m->engine.p_out, unwrapFlag, rs_amt,
+                block, 0l, ra_amt, 1,
+                pkt->input_size, pkt->input_bytes_processed, pkt->metadata_size, pkt->metadata_bytes_processed);
+
+        pkt->input_bytes_processed += rs_amt;
+        pkt->metadata_bytes_processed += ra_amt;
+        out_offset = rs_amt;
+
+
+    
+
         /*printf ("wrap: input_size %ld\n  metadata_size %ld\n", pkt->input_size,pkt->metadata_size);*/
 
-        while((i < KEYAK_GPU_BUF_SLOTS) && pkt->rs_sizes[i])
-        {
-            
+        /*while((i < KEYAK_GPU_BUF_SLOTS) && pkt->rs_sizes[i])*/
+        /*{*/
+            /*uint32_t offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);*/
 
-            uint32_t offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
+            /*timer_start(&tcrypt, "engine_crypt");*/
 
-            timer_start(&tcrypt, "engine_crypt");
+            /*uint8_t do_spark = ((pkt->input_bytes_processed + pkt->rs_sizes[i]) < pkt->input_size */
+                    /*|| (pkt->metadata_bytes_processed + pkt->ra_sizes[i]) < pkt->metadata_size);*/
 
-            uint8_t do_spark = ((pkt->input_bytes_processed + pkt->rs_sizes[i]) < pkt->input_size 
-                    || (pkt->metadata_bytes_processed + pkt->ra_sizes[i]) < pkt->metadata_size);
+            /*engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i],*/
+                    /*block + offset + PISTON_RS * KEYAK_NUM_PISTONS, do_spark, pkt->ra_sizes[i], 1);*/
 
-            engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i],
-                    block + offset + PISTON_RS * KEYAK_NUM_PISTONS, do_spark, pkt->ra_sizes[i], 1);
+            /*out_offset += pkt->rs_sizes[i];*/
 
-            out_offset += pkt->rs_sizes[i];
-
-            pkt->input_bytes_processed += pkt->rs_sizes[i];
+            /*pkt->input_bytes_processed += pkt->rs_sizes[i];*/
 
 
-            timer_accum(&tcrypt);
+            /*timer_accum(&tcrypt);*/
 
 
-            pkt->metadata_bytes_processed += pkt->ra_sizes[i];
+            /*pkt->metadata_bytes_processed += pkt->ra_sizes[i];*/
 
 
-            i++;
-        }
+            /*i++;*/
+        /*}*/
         timer_start(&tcrypt, "engine_crypt");
         engine_yield(&m->engine, m->output, out_offset);
         timer_accum(&tcrypt);

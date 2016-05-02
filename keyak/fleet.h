@@ -3,7 +3,7 @@
 
 #include "motorist.h"
 
-#define FLEET_CAPACITY  10
+#define FLEET_CAPACITY  50
 
 static Motorist fleet[FLEET_CAPACITY];
 static int num_boats = 0;

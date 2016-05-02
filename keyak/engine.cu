@@ -282,8 +282,9 @@ void engine_inject(Engine * e, uint8_t * A, uint8_t doSpark, uint32_t amt)
 
 // I is a GPU owned buffer
 // O is a GPU owned buffer
-void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt,
-            uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag)
+void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t rs_amt,
+            uint8_t * A, uint8_t doSpark, uint32_t ra_size, uint8_t cryptingFlag,
+            uint32_t input_size, uint32_t input_bytes_processed, uint32_t metadata_size, uint32_t metadata_bytes_processed)
 {
 
     assert(e->phase == EngineFresh);
@@ -291,8 +292,10 @@ void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint
     // TODO is PISTON_RS i.e. 1-1 the best ratio here?
     // ^ yes for a particular stream but idk for biggest data streams
 
-    piston_crypt<<<KEYAK_NUM_PISTONS,PISTON_RS, 0, e->stream>>>
-        (I,O,e->p_state,amt, unwrapFlag, A,size,cryptingFlag, doSpark);
+    piston_crypt_super<<<KEYAK_NUM_PISTONS,PISTON_RS, 0, e->stream>>>
+        (I,O,e->p_state,rs_amt, unwrapFlag, A,rs_amt,cryptingFlag, doSpark,
+            input_size, input_bytes_processed, metadata_size, metadata_bytes_processed
+         );
 
     if (doSpark)
     {
