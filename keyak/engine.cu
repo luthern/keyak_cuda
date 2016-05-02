@@ -37,7 +37,6 @@ void dump_hex_cuda(uint8_t * buf, uint32_t size)
 
 #endif
 
-__device__ __constant__ uint8_t ENGINE_INPUT[KEYAK_NUM_PISTONS * KEYAK_STATE_SIZE * KEYAK_GPU_BUF_SLOTS * 2];
 
 __device__ __constant__ uint8_t OFFSETS_CPRIME[8] = {KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8,
                                                        KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8, KEYAK_CPRIME/8};
@@ -55,16 +54,16 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
     memset(pkt->rs_sizes,0,sizeof(pkt->rs_sizes[0])*(KEYAK_GPU_BUF_SLOTS));
     memset(pkt->ra_sizes,0,sizeof(pkt->ra_sizes[0])*(KEYAK_GPU_BUF_SLOTS));
 
-    if (pkt->input_offset < pkt->input_size)
+    if (pkt->input_bytes_copied < pkt->input_size)
     {
         for (i=0; i < KEYAK_GPU_BUF_SLOTS; i++)
         {
-            uint32_t tocopy = MIN(PISTON_RS * KEYAK_NUM_PISTONS, pkt->input_size - pkt->input_offset);
-            memmove(pkt->merged + j, pkt->input + pkt->input_offset, tocopy);
+            uint32_t tocopy = MIN(PISTON_RS * KEYAK_NUM_PISTONS, pkt->input_size - pkt->input_bytes_copied);
+            memmove(pkt->merged + j, pkt->input + pkt->input_bytes_copied, tocopy);
             pkt->rs_sizes[l++] = tocopy;
             j += (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);
-            pkt->input_offset += tocopy;
-            if (pkt->input_offset == pkt->input_size)
+            pkt->input_bytes_copied += tocopy;
+            if (pkt->input_bytes_copied == pkt->input_size)
             {
                 i++;
                 break;
@@ -73,17 +72,17 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
     }
     total_blocks = i;
 
-    if (pkt->metadata_offset < pkt->metadata_size)
+    if (pkt->metadata_bytes_copied < pkt->metadata_size)
     {
         j=0,l=0;
         for (i=0; i < KEYAK_GPU_BUF_SLOTS; i++)
         {
-            uint32_t tocopy = MIN(PISTON_RA * KEYAK_NUM_PISTONS, pkt->metadata_size - pkt->metadata_offset);
-            memmove(pkt->merged + j + PISTON_RS * KEYAK_NUM_PISTONS, pkt->metadata + pkt->metadata_offset, tocopy);
+            uint32_t tocopy = MIN(PISTON_RA * KEYAK_NUM_PISTONS, pkt->metadata_size - pkt->metadata_bytes_copied);
+            memmove(pkt->merged + j + PISTON_RS * KEYAK_NUM_PISTONS, pkt->metadata + pkt->metadata_bytes_copied, tocopy);
             pkt->ra_sizes[l++] = tocopy;
             j += (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);
-            pkt->metadata_offset += tocopy;
-            if (pkt->metadata_offset == pkt->metadata_size)
+            pkt->metadata_bytes_copied += tocopy;
+            if (pkt->metadata_bytes_copied == pkt->metadata_size)
             {
                 i++;
                 break;
@@ -101,7 +100,7 @@ uint8_t * coalesce_gpu(Engine * e, Packet * pkt)
 
     ptr = e->p_coalesced;
     HANDLE_ERROR(cudaMemcpyAsync( ptr, pkt->merged,
-                total_blocks * KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice));
+                total_blocks * KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS, cudaMemcpyHostToDevice, e->stream));
 
     return ptr;
 }
@@ -113,6 +112,7 @@ void engine_init(Engine * e)
     e->phase = EngineFresh;
 
     // TODO consider making these all one contiguous block or even different memories
+    HANDLE_ERROR(cudaStreamCreate(&e->stream));
     HANDLE_ERROR(cudaMalloc(&e->p_in, PISTON_RS * KEYAK_NUM_PISTONS ));
 
     HANDLE_ERROR(cudaMalloc(&e->p_out, PISTON_RS * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS ));
@@ -137,6 +137,8 @@ void engine_init(Engine * e)
 
 void engine_destroy(Engine * e)
 {
+    engine_sync();
+    cudaStreamDestroy(e->stream);
     cudaFree(e->p_in);
     cudaFree(e->p_out);
     cudaFree(e->p_offsets);
@@ -149,13 +151,13 @@ void engine_restart(Engine * e)
 {
     e->phase = EngineFresh;
 
-    HANDLE_ERROR(cudaMemset(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMemsetAsync(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS, e->stream ));
 }
 
 // offsets is GPU owned
 void engine_spark(Engine * e, uint8_t eom, uint8_t * offsets, uint8_t * dst, uint8_t size)
 {
-    piston_spark<<<KEYAK_NUM_PISTONS,PERMUTE_THREADS>>>
+    piston_spark<<<KEYAK_NUM_PISTONS,PERMUTE_THREADS, 0, e->stream>>>
         (e->p_state, eom, offsets,dst,size);
 }
 
@@ -167,7 +169,7 @@ void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L)
     e->phase = EngineFresh;
 }
 
-void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
+void engine_get_tags(Engine * e, uint8_t * T, uint8_t * L)
 {
     assert(e->phase == EngineEndOfMessage);
     uint8_t amt = (L == e->p_offsets_cprime) ? KEYAK_CPRIME/8 : 0;
@@ -179,23 +181,21 @@ void engine_get_tags(Engine * e, Buffer * T, uint8_t * L)
         if (L == e->p_offsets_cprime)
         {
             HANDLE_ERROR(
-                    cudaMemcpyAsync(T->buf + T->length,
+                    cudaMemcpyAsync(T,
                         e->p_tmp,
-                        (KEYAK_CPRIME / 8) * KEYAK_NUM_PISTONS, cudaMemcpyDeviceToHost)
+                        (KEYAK_CPRIME / 8) * KEYAK_NUM_PISTONS, cudaMemcpyDeviceToHost, e->stream)
                     );
-            T->length += (KEYAK_CPRIME / 8) * KEYAK_NUM_PISTONS;
         }
     }
     else
     {
         assert(KEYAK_TAG_SIZE/8 <= PISTON_RS);
         HANDLE_ERROR(
-                cudaMemcpyAsync(T->buf + T->length,
+                cudaMemcpyAsync(T,
                     e->p_state,
-                    KEYAK_TAG_SIZE/8, cudaMemcpyDeviceToHost)
+                    KEYAK_TAG_SIZE/8, cudaMemcpyDeviceToHost, e->stream)
                 );
 
-        T->length += KEYAK_TAG_SIZE/8;
     }
     e->phase = EngineFresh;
 
@@ -229,7 +229,7 @@ void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dF
     {
         HANDLE_ERROR(cudaMemcpyAsync(e->p_tmp,X,
                     size,
-                    cudaMemcpyHostToDevice));
+                    cudaMemcpyHostToDevice, e->stream));
         ptr = e->p_tmp;
     }
 
@@ -238,12 +238,12 @@ void engine_inject_collective(Engine * e, uint8_t * X, uint32_t size, uint8_t dF
     {
         if ( i + PISTON_RA >= size)
         {
-            piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
+            piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA, 0, e->stream>>>(e->p_state,
                     ptr, i, size - i, dFlag,0);
         }
         else
         {
-            piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA>>>(e->p_state,
+            piston_inject_uniform<<<KEYAK_NUM_PISTONS, PISTON_RA, 0, e->stream>>>(e->p_state,
                     ptr, i, PISTON_RA, 0,1);
 
         }
@@ -268,7 +268,7 @@ void engine_inject(Engine * e, uint8_t * A, uint8_t doSpark, uint32_t amt)
 
     if (amt)
     {
-        piston_inject_seq<<<KEYAK_NUM_PISTONS, PISTON_RA>>>
+        piston_inject_seq<<<KEYAK_NUM_PISTONS, PISTON_RA, 0, e->stream>>>
         (e->p_state, A, amt, cryptingFlag, doSpark);
     }
 
@@ -284,15 +284,23 @@ void engine_inject(Engine * e, uint8_t * A, uint8_t doSpark, uint32_t amt)
 
 // I is a GPU owned buffer
 // O is a GPU owned buffer
+<<<<<<< HEAD
 void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t amt,
             uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag,
             uint32_t rs_size, uint32_t ra_size)
+=======
+void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint32_t rs_amt,
+            uint8_t * A, uint8_t doSpark, uint32_t ra_size, uint8_t cryptingFlag,
+            uint32_t input_size, uint32_t input_bytes_processed, uint32_t metadata_size, uint32_t metadata_bytes_processed)
+>>>>>>> master
 {
 
     assert(e->phase == EngineFresh);
 
     // TODO is PISTON_RS i.e. 1-1 the best ratio here?
+    // ^ yes for a particular stream but idk for biggest data streams
 
+<<<<<<< HEAD
     /*printf("calling crypt\n");*/
     piston_crypt<<<KEYAK_NUM_PISTONS,PISTON_RS>>>
         (I,O,e->p_state,amt, unwrapFlag, A,size,cryptingFlag, doSpark,
@@ -304,15 +312,33 @@ void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint
     /*}*/
     /*else*/
     /*{*/
+=======
+    piston_crypt_super<<<KEYAK_NUM_PISTONS,PISTON_RS, 0, e->stream>>>
+        (I,O,e->p_state,rs_amt, unwrapFlag, A,rs_amt,cryptingFlag, doSpark,
+            input_size, input_bytes_processed, metadata_size, metadata_bytes_processed
+         );
+
+    if (doSpark)
+    {
+        e->phase = EngineFresh;
+    }
+    else
+    {
+>>>>>>> master
         e->phase = EngineEndOfMessage;
     /*}*/
 
 }
 
-void engine_yield(Engine * e, uint8_t * buf, uint32_t size)
+void engine_yield(Engine * e, uint8_t * buf, size_t size)
 {
     HANDLE_ERROR(cudaMemcpyAsync(buf, e->p_out,
                 size,
-                cudaMemcpyDeviceToHost));
+                cudaMemcpyDeviceToHost, e->stream));
+}
+
+void engine_sync()
+{
+    HANDLE_ERROR(cudaDeviceSynchronize());
 }
 

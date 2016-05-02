@@ -13,8 +13,9 @@
 void buffer_init(Buffer * b, uint8_t * data, uint32_t len)
 {
     memset(b, 0, sizeof(Buffer));
-    memmove(b->buf, data, len);
     b->length = len;
+    b->buf = b->buf_stack;
+    memmove(b->buf, data, len);
 }
 
 __global__ void piston_spark(uint8_t * state, uint8_t eom, uint8_t * offsets, uint8_t * dst, uint8_t amt)
@@ -130,9 +131,14 @@ __global__ void piston_inject_uniform(uint8_t * state, uint8_t * x, uint32_t off
     }
 }
 
+<<<<<<< HEAD
 __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
                                 uint32_t _amt, uint8_t unwrapFlag, uint8_t * _x, uint32_t _size, uint8_t crypting, uint8_t _doSpark,
                                 uint32_t rs_total, uint32_t ra_total)
+=======
+__device__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
+                                uint32_t amt, uint8_t unwrapFlag, uint8_t * x, uint32_t size, uint8_t crypting, uint8_t doSpark)
+>>>>>>> master
 {
     int i = blockIdx.x * KEYAK_STATE_SIZE + threadIdx.x;
     int consuming = blockIdx.x * PISTON_RS + threadIdx.x;
@@ -183,6 +189,72 @@ __global__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
         out += rs_amt;
         in += KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS;
     }
+    else if (doSpark)
+    {
+        PERMUTE((uint64_t *)(state + blockIdx.x * KEYAK_STATE_SIZE));
+    }
+
+}
+
+
+__global__ void piston_crypt_super(   uint8_t * block, uint8_t * out, uint8_t * state,
+                                uint32_t rs_amt, uint8_t unwrapFlag, uint8_t * x, uint32_t ra_amt, uint8_t crypting, uint8_t doSpark,
+                                uint32_t input_size, uint32_t input_bytes_processed, uint32_t metadata_size, uint32_t metadata_bytes_processed)
+{
+
+    int out_offset;
+
+    int i;
+    for (i=0; i < rs_amt / (PISTON_RS * KEYAK_NUM_PISTONS); i++)
+    {
+        int ra_left = MIN(ra_amt - metadata_bytes_processed, PISTON_RA * KEYAK_NUM_PISTONS);
+        uint32_t offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
+
+        /*timer_start(&tcrypt, "engine_crypt");*/
+
+        uint8_t do_spark = ((input_bytes_processed + PISTON_RS * KEYAK_NUM_PISTONS) < input_size 
+                || (metadata_bytes_processed + ra_left) < metadata_size);
+
+        piston_crypt(block + offset, out + out_offset, state, KEYAK_NUM_PISTONS * PISTON_RS, unwrapFlag,
+                block + offset + PISTON_RS * KEYAK_NUM_PISTONS, ra_left, crypting, do_spark);
+
+        out_offset += KEYAK_NUM_PISTONS * PISTON_RS;
+
+        input_bytes_processed += KEYAK_NUM_PISTONS * PISTON_RS;
+
+
+        /*timer_accum(&tcrypt);*/
+
+
+        metadata_bytes_processed += ra_left;
+
+    }
+
+    if ( rs_amt > input_bytes_processed)
+    {
+        int ra_left = MIN(ra_amt - metadata_bytes_processed, PISTON_RA * KEYAK_NUM_PISTONS);
+        int rs_left = (rs_amt - input_bytes_processed);
+        uint32_t offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
+
+        /*timer_start(&tcrypt, "engine_crypt");*/
+
+        uint8_t do_spark = ((input_bytes_processed + rs_left) < input_size 
+                || (metadata_bytes_processed + ra_left) < metadata_size);
+
+
+        piston_crypt(block + offset, out + out_offset, state, rs_left, unwrapFlag,
+                block + offset + PISTON_RS * KEYAK_NUM_PISTONS, ra_left, crypting, do_spark);
+
+        out_offset += rs_left;
+
+        input_bytes_processed += rs_left;
+
+
+        /*timer_accum(&tcrypt);*/
+
+        metadata_bytes_processed += ra_left;
+    }
+
 
 }
 

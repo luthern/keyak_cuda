@@ -3,7 +3,7 @@ obj = $(src:.c=.o) engine.o utils.o
 
 name=keyak
 
-CFLAGS= -I/usr/local/cuda-7.5/include/ -O3 -Werror 
+CFLAGS= -I/usr/local/cuda-7.5/include/ -I $(CUDA_INC) -O3 -Werror 
 LDFLAGS= -lcudart -lcudart -lcrypto
 
 CC=g++

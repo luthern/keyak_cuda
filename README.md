@@ -30,3 +30,10 @@ Run test vector to ensure implementation is correct
 cd vectors/
 ./v1.sh
 ```
+
+## Usage
+
+```bash
+./keyak
+usage: ./keyak <key-hex> <input-file> <output-file> [-n <nonce-hex>] [-m <metadata-hex>] [-i <iterations>]
+```

@@ -13,7 +13,22 @@ void motorist_init(Motorist * m)
 
     m->phase = MotoristReady;
 
+    memset(&m->pkt, 0, sizeof(Packet));
+
     engine_init(&m->engine);
+}
+
+void motorist_fuel(Motorist * m, uint8_t * input, uint32_t ilen, uint8_t * metadata, uint32_t mlen, uint8_t * tag)
+{
+    memset(&m->pkt, 0, sizeof(Packet));
+    m->pkt.input = input;
+    m->pkt.input_size = ilen;
+    m->pkt.metadata = metadata;
+    m->pkt.metadata_size = mlen;
+    if (tag != NULL)
+    {
+        memmove(m->tag, tag, KEYAK_TAG_SIZE/8);
+    }
 }
 
 void motorist_restart(Motorist * m)
@@ -44,16 +59,15 @@ void motorist_destroy(Motorist * m)
 
 // 1 success
 // 0 fail
-static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
+static int handle_tag(Motorist * m, uint8_t tagFlag, uint8_t * T,
                     uint8_t unwrapFlag)
 {
-    Buffer Tprime;
-    buffer_init(&Tprime, NULL, 0);
+    uint8_t Tprime[KEYAK_TAG_SIZE/8];
 
     if (!tagFlag)
     {
         // move engine state along ..
-        engine_get_tags(&m->engine,&Tprime, m->engine.p_offsets_zero);
+        engine_get_tags(&m->engine,Tprime, m->engine.p_offsets_zero);
     }
     else
     {
@@ -63,9 +77,12 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, Buffer * T,
             return 1;
         }
 
-        // TODO do this on GPU
-        engine_get_tags(&m->engine, &Tprime, m->engine.p_offsets_1tag);
-        if (!buffer_same(&Tprime,T))
+        // TODO separate the get_tags from the check
+        engine_get_tags(&m->engine, Tprime, m->engine.p_offsets_1tag);
+
+
+        engine_sync();
+        if (memcmp(Tprime, T, KEYAK_TAG_SIZE/8) != 0)
         {
             m->phase = MotoristFailed;
             return 0;
@@ -91,61 +108,84 @@ void motorist_timers_end()
 
 extern void dump_state(Engine * e, int piston);
 
+<<<<<<< HEAD
 void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
                     Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag)
+=======
+static unsigned int total_amt(unsigned int * sizes)
+>>>>>>> master
 {
-    assert(m->phase == MotoristRiding);
-    if ((pkt->input_offset >= pkt->input_size) && (pkt->metadata_offset >= pkt->metadata_size))
+    unsigned int amt = 0;
+    int i = 0;
+    for (; i < KEYAK_GPU_BUF_SLOTS; i++)
     {
-        timer_start(&tinject, "engine_inject");
-        engine_inject(&m->engine,NULL,0,0);
-        timer_accum(&tinject);
+        amt += sizes[i];
     }
-    uint8_t bufsel = 0;
+    return amt;
+}
 
-    int isize;
-    int asize;
-    uint32_t offset, rs_offset = 0, ra_offset = 0, out_offset = 0;
+int motorist_wrap(Motorist * m, uint8_t unwrapFlag)
+{
+
+    /*if ((pkt->input_bytes_copied >= pkt->input_size) && (pkt->metadata_bytes_copied >= pkt->metadata_size))*/
+    /*{*/
+        /*timer_start(&tinject, "engine_inject");*/
+        /*engine_inject(&m->engine,NULL,0,0);*/
+        /*timer_accum(&tinject);*/
+    /*}*/
+
+    Packet * pkt = &m->pkt;
+
+    uint32_t offset, out_offset = 0;
 
     uint8_t * block;
 
 
-    do
+    if (pkt->input_bytes_copied < pkt->input_size)
     {
         block = coalesce_gpu(&m->engine, pkt);
         uint8_t i = 0;
         out_offset = 0;
 
-        /*printf("\nabsorbed %ld/%ld input\n", pkt->input_offset,pkt->input_size);*/
+        int ra_amt = total_amt(pkt->ra_sizes);
+        int rs_amt = total_amt(pkt->rs_sizes);
 
-        while((i < KEYAK_GPU_BUF_SLOTS) && pkt->rs_sizes[i])
-        {
-            
-            uint8_t do_spark = 0;
-            /*printf("i: %d < %d ? %d\n",i, KEYAK_GPU_BUF_SLOTS,i<KEYAK_GPU_BUF_SLOTS);*/
+        engine_crypt(&m->engine, block, m->engine.p_out, unwrapFlag, rs_amt,
+                block, 0l, ra_amt, 1,
+                pkt->input_size, pkt->input_bytes_processed, pkt->metadata_size, pkt->metadata_bytes_processed);
 
-            offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);
+        pkt->input_bytes_processed += rs_amt;
+        pkt->metadata_bytes_processed += ra_amt;
+        out_offset = rs_amt;
 
-            timer_start(&tcrypt, "engine_crypt");
 
-            // uint8_t * A, uint8_t doSpark, uint32_t size, uint8_t cryptingFlag)
-            /*printf("crypting %d bytes\n",pkt->rs_sizes[i]);*/
-            do_spark = ((rs_offset + pkt->rs_sizes[i]) < pkt->input_size || (ra_offset + pkt->ra_sizes[i]) < pkt->metadata_size);
+    
 
+<<<<<<< HEAD
             engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i],
                     block + offset + PISTON_RS * KEYAK_NUM_PISTONS, do_spark, pkt->ra_sizes[i], 1,
                     pkt->input_size,pkt->metadata_size);
+=======
+        /*printf ("wrap: input_size %ld\n  metadata_size %ld\n", pkt->input_size,pkt->metadata_size);*/
+>>>>>>> master
 
-            out_offset += pkt->rs_sizes[i];
+        /*while((i < KEYAK_GPU_BUF_SLOTS) && pkt->rs_sizes[i])*/
+        /*{*/
+            /*uint32_t offset = (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS * i);*/
 
-            rs_offset += pkt->rs_sizes[i];
+            /*timer_start(&tcrypt, "engine_crypt");*/
 
+            /*uint8_t do_spark = ((pkt->input_bytes_processed + pkt->rs_sizes[i]) < pkt->input_size */
+                    /*|| (pkt->metadata_bytes_processed + pkt->ra_sizes[i]) < pkt->metadata_size);*/
 
-            timer_accum(&tcrypt);
+            /*engine_crypt(&m->engine, block + offset, m->engine.p_out + out_offset, unwrapFlag, pkt->rs_sizes[i],*/
+                    /*block + offset + PISTON_RS * KEYAK_NUM_PISTONS, do_spark, pkt->ra_sizes[i], 1);*/
 
+            /*out_offset += pkt->rs_sizes[i];*/
 
-            ra_offset += pkt->ra_sizes[i];
+            /*pkt->input_bytes_processed += pkt->rs_sizes[i];*/
 
+<<<<<<< HEAD
             i++;
             break;
         }
@@ -158,11 +198,28 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
         timer_start(&tcrypt, "engine_crypt");
         engine_yield(&m->engine, O->buf, pkt->input_size);
         O->length += out_offset;
-        timer_accum(&tcrypt);
-    }
-    while(pkt->input_offset < pkt->input_size);
+=======
 
-    while(pkt->input_offset < pkt->input_size)
+            /*timer_accum(&tcrypt);*/
+
+
+            /*pkt->metadata_bytes_processed += pkt->ra_sizes[i];*/
+
+
+            /*i++;*/
+        /*}*/
+        timer_start(&tcrypt, "engine_crypt");
+        engine_yield(&m->engine, m->output, out_offset);
+>>>>>>> master
+        timer_accum(&tcrypt);
+
+        if (pkt->input_bytes_copied < pkt->input_size)
+        {
+            return MOTORIST_NOT_WRAPPED;
+        }
+    }
+
+    if (pkt->metadata_bytes_copied < pkt->metadata_size)
     {
         fprintf(stderr,"this should NOT happen!\n");
         block = coalesce_gpu(&m->engine, pkt);
@@ -175,14 +232,26 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
             timer_start(&tinject, "engine_inject");
 
             engine_inject(&m->engine, block + offset + PISTON_RS * KEYAK_NUM_PISTONS,
-                    (ra_offset + m->input_ra_size[i]) < pkt->metadata_size, m->input_ra_size[i]);
+                    (pkt->metadata_bytes_processed + m->input_ra_size[i]) < pkt->metadata_size, m->input_ra_size[i]);
 
-            ra_offset += m->input_ra_size[i];
+            pkt->metadata_bytes_processed += m->input_ra_size[i];
             timer_accum(&tinject);
             i++;
         }
+        if (pkt->metadata_bytes_copied < pkt->metadata_size)
+        {
+            return MOTORIST_NOT_WRAPPED;
+        }
     }
 
+    m->phase = MotoristWrapped;
+
+    return MOTORIST_WRAPPED;
+}
+
+void motorist_authenticate(Motorist * m, uint8_t * T, uint8_t forgetFlag, uint8_t unwrapFlag)
+{
+    // TODO consider pipeline here
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
     {
         timer_start(&tknot, "make_knot");
@@ -191,12 +260,14 @@ void motorist_wrap(Motorist * m, Packet * pkt, Buffer * O,
     }
     timer_start(&ttag, "handle_tag");
     int r = handle_tag(m, 1, T, unwrapFlag);
+    m->phase = MotoristDone;
     timer_accum(&ttag);
 }
 
 uint8_t motorist_start_engine(Motorist * m, Buffer * suv, uint8_t tagFlag,
-                    Buffer * T, uint8_t unwrapFlag, uint8_t forgetFlag)
+                    uint8_t * T, uint8_t unwrapFlag, uint8_t forgetFlag)
 {
+    // TODO consider pipeline here
     timer_start(&starttag,"start_engine");
     assert(m->phase == MotoristReady);
 
