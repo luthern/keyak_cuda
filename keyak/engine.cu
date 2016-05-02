@@ -151,7 +151,7 @@ void engine_restart(Engine * e)
 {
     e->phase = EngineFresh;
 
-    HANDLE_ERROR(cudaMemset(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMemsetAsync(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS, e->stream ));
 }
 
 // offsets is GPU owned
