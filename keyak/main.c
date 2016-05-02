@@ -144,7 +144,7 @@ int main(int argc, char * argv[])
 
 
 
-    for (j=1; j < 20; j++)
+    for (j=1; j < 11; j++)
     {
 
         memset(&t, 0, sizeof(struct timer));

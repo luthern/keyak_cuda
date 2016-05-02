@@ -73,12 +73,13 @@ static int handle_tag(Motorist * m, uint8_t tagFlag, uint8_t * T,
     {
         if (!unwrapFlag)
         {
-            engine_get_tags(&m->engine, T, m->engine.p_offsets_1tag);
+            engine_get_tags_super(&m->engine, T, m->engine.p_offsets_1tag);
+            
             return 1;
         }
 
         // TODO separate the get_tags from the check
-        engine_get_tags(&m->engine, Tprime, m->engine.p_offsets_1tag);
+        engine_get_tags_super(&m->engine, Tprime, m->engine.p_offsets_1tag);
 
 
         engine_sync();
@@ -195,6 +196,8 @@ int motorist_wrap(Motorist * m, uint8_t unwrapFlag)
 
     if (pkt->metadata_bytes_copied < pkt->metadata_size)
     {
+        printf("this should not happen\n");
+        exit(1);
         block = coalesce_gpu(&m->engine, pkt);
         uint8_t i = 0;
 
@@ -228,7 +231,7 @@ void motorist_authenticate(Motorist * m, uint8_t * T, uint8_t forgetFlag, uint8_
     if (KEYAK_NUM_PISTONS > 1 || forgetFlag)
     {
         timer_start(&tknot, "make_knot");
-        make_knot(m);
+        /*make_knot(m);*/
         timer_accum(&tknot);
     }
     timer_start(&ttag, "handle_tag");

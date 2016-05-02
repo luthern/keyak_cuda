@@ -23,6 +23,7 @@ typedef struct _Engine
     uint8_t * p_in;
     uint8_t * p_out;
     uint8_t * p_state;
+    uint8_t * p_tag;
     uint8_t * p_tmp;
     uint8_t * p_offsets;
 
@@ -57,6 +58,7 @@ void dump_hex_cuda(uint8_t * buf, uint32_t size);
 void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L);
 void engine_yield(Engine * e, uint8_t * buf, size_t size);
 void engine_sync();
+void engine_get_tags_super(Engine * e, uint8_t * T, uint8_t * L);
 /****               */
 
 void engine_init(Engine * e);

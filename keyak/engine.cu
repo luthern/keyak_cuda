@@ -6,10 +6,6 @@
 
 #include "utils.h"
 
-// cuda does not support external linkage
-#include "keccak.cu"
-#include "piston.cu"
-
 #if 1
 
 void dump_state(Engine * e, int piston)
@@ -43,6 +39,11 @@ __device__ __constant__ uint8_t OFFSETS_CPRIME[8] = {KEYAK_CPRIME/8, KEYAK_CPRIM
 
 __device__ __constant__ uint8_t OFFSETS_1TAG[8] = {KEYAK_TAG_SIZE/8, 0, 0, 0, 0, 0, 0, 0};
 __device__ __constant__ uint8_t OFFSETS_ZERO[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+// cuda does not support external linkage
+#include "keccak.cu"
+#include "piston.cu"
+
 
 
 // interleave 2 cpu buffers and make 1 copy to GPU
@@ -118,6 +119,7 @@ void engine_init(Engine * e)
     HANDLE_ERROR(cudaMalloc(&e->p_out, PISTON_RS * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS ));
     HANDLE_ERROR(cudaMalloc(&e->p_state, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&e->p_tmp, KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMalloc(&e->p_tag, KEYAK_TAG_SIZE/8));
     HANDLE_ERROR(cudaMalloc(&e->p_offsets, KEYAK_NUM_PISTONS ));
     
     //e->p_coalesced = ENGINE_INPUT;
@@ -168,6 +170,20 @@ void engine_get_tags_gpu(Engine * e, uint8_t * buf, uint8_t * L)
     engine_spark(e, 1,e->p_offsets_cprime, buf, KEYAK_CPRIME/8);
     e->phase = EngineFresh;
 }
+
+
+void engine_get_tags_super(Engine * e, uint8_t * T, uint8_t * L)
+{
+    assert(e->phase == EngineEndOfMessage);
+    e->phase = EngineFresh;
+    HANDLE_ERROR(
+            cudaMemcpyAsync(T,
+                e->p_tag,
+                (KEYAK_TAG_SIZE / 8), cudaMemcpyDeviceToHost, e->stream)
+            );
+
+}
+
 
 void engine_get_tags(Engine * e, uint8_t * T, uint8_t * L)
 {
@@ -292,9 +308,10 @@ void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint
     // TODO is PISTON_RS i.e. 1-1 the best ratio here?
     // ^ yes for a particular stream but idk for biggest data streams
 
-    piston_crypt_super<<<KEYAK_NUM_PISTONS,PISTON_RS, 0, e->stream>>>
+    piston_crypt_super<<<KEYAK_NUM_PISTONS,KEYAK_STATE_SIZE, 0, e->stream>>>
         (I,O,e->p_state,rs_amt, unwrapFlag, A,rs_amt,cryptingFlag, doSpark,
-            input_size, input_bytes_processed, metadata_size, metadata_bytes_processed
+            input_size, input_bytes_processed, metadata_size, metadata_bytes_processed,
+            e->p_tag, e->p_tmp
          );
 
     if (doSpark)
