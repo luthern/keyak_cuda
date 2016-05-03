@@ -22,7 +22,7 @@ struct timer
 #define USE_TIMERS
 
 void timer_start(struct timer * t, const char * msg);
-void timer_end(struct timer * t );
+float timer_end(struct timer * t );
 void timer_accum(struct timer * t );
 
 void motorist_timers_end();

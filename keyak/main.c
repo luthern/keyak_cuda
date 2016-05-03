@@ -144,7 +144,7 @@ int main(int argc, char * argv[])
 
 
 
-    for (j=10; j < 11; j++)
+    for (j=50; j < 51; j+=1)
     {
 
         memset(&t, 0, sizeof(struct timer));
@@ -172,9 +172,12 @@ int main(int argc, char * argv[])
             /*keyak_decrypt(&recvr);*/
         }
 
-        timer_end(&t);
-        /*timer_end(&tinit);*/
         engine_sync();
+        float time = timer_end(&t);
+
+        /*printf("Time: %.5f s per data stream\n", time/j);*/
+        printf("Time: %.5f s per data stream\n", time);
+        /*timer_end(&tinit);*/
 
 
     }
