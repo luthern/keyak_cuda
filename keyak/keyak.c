@@ -84,13 +84,66 @@ static int fleet_exhausted(Fleet * f)
     return 1;
 }
 
+static void fleet_prof(Fleet * f, int * numReady, int * numRiding, int * numWrapped, int * numDone)
+{
+    Motorist * mptr;
+    *numReady = 0;
+    *numRiding = 0;
+    *numWrapped = 0;
+    *numDone = 0;
+    int i=0;
+
+    for(mptr = fleet_first(f); !fleet_end(f); mptr = fleet_next(f))
+    {
+        i++;
+        switch(mptr->phase)
+        {
+            case MotoristReady:
+                *numReady = *numReady + 1;
+                break;
+            case MotoristRiding:
+                *numRiding = *numRiding + 1;
+                break;
+            case MotoristWrapped:
+                *numWrapped = *numWrapped + 1;
+                break;
+            case MotoristFailed:
+            case MotoristDone:
+                *numDone = *numDone + 1;
+                break;
+            default:
+                fprintf(stderr,"incorrect state for stream %d\n", i);
+                break;
+        }
+    }
+
+}
+
 
 void keyak_encrypt(Keyak * k)
 {
     int i;
+    int ready, riding, wrapped, done;
+
+    if (!fleet_size(k->fleet))
+    {
+        return;
+    }
 
     do
     {
+        /*fleet_prof(k->fleet, &ready, &riding, &wrapped, &done);*/
+
+        /*// nothing is happening so start one*/
+        /*if (fleet_size(k->fleet) == ready)*/
+        /*{*/
+            /*motorist_start_engine(fleet_first(k->fleet), &k->SUV, 0, fleet_first(k->fleet)->tag, 0, 0);*/
+        /*}*/
+        /*else if (ready == wrapped)*/
+        /*{*/
+            /*// time to copy*/
+        /*}*/
+
         for(mptr = fleet_first(k->fleet); !fleet_end(k->fleet); mptr = fleet_next(k->fleet))
         {
             switch(mptr->phase)

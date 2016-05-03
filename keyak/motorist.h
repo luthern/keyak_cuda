@@ -26,6 +26,11 @@ typedef struct _Motorist
     uint8_t * output;
     // for wrapping
     uint8_t tag[KEYAK_TAG_SIZE/8];
+    uint8_t movingMem;
+    uint8_t time_to_copy;
+    uint32_t copy_amt;
+    uint8_t * mem;
+    uint8_t key_injected;
     //for unwrapping
     //uint8_t * auth_tag;
 

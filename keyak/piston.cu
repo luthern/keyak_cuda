@@ -226,9 +226,9 @@ __global__ void piston_crypt_super(   uint8_t * block, uint8_t * out, uint8_t * 
 
     __shared__ uint8_t state[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS];
     __shared__ uint8_t tmp[KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS];
-    __shared__ uint8_t block[(1<<10)*40];
+    /*__shared__ uint8_t block[(1<<10)*40];*/
 
-    int stride = (input_size + metadata_size) / (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);
+    /*int stride = (input_size + metadata_size) / (KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS);*/
 
     int si = blockIdx.x * KEYAK_STATE_SIZE + threadIdx.x;
     state[si] = state_ext[si];
@@ -291,6 +291,8 @@ __global__ void piston_crypt_super(   uint8_t * block, uint8_t * out, uint8_t * 
         }
         // END CRYPT + INJECT //
 
+        // AUTHENTICATE //
+
         // make knot
         piston_spark_dev
             (state, 1, OFFSETS_CPRIME, tmp, KEYAK_CPRIME/8);
@@ -317,7 +319,6 @@ __global__ void piston_crypt_super(   uint8_t * block, uint8_t * out, uint8_t * 
 
 
 
-        // AUTHENTICATE //
 
     }
 

@@ -27,9 +27,10 @@ void fleet_preallocate(Fleet * f, int num);
 
 Motorist * fleet_first(Fleet * f);
 Motorist * fleet_next(Fleet * f);
+
+#define fleet_size(f)   ((f)->streams)
 uint8_t fleet_end(Fleet * f);
 void fleet_destroy(Fleet * f);
-
 
 
 #endif

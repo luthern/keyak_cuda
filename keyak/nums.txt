@@ -1,0 +1,11 @@
+1 stream:
+74.15%  635.15ms     10000  63.514us  62.142us  68.766us  piston_crypt_super
+82.60%  1.09613s     40000  27.403us  2.8540us  635.61us  cudaMemcpyAsync
+
+2 stream:
+ 74.05%  1.26152s     20000  63.075us  62.270us  69.054us  piston_crypt_super
+ 81.66%  1.84945s     80000  23.118us  2.1760us  1.0648ms  cudaMemcpyAsync
+
+3 stream:
+ 73.89%  1.88615s     30000  62.871us  62.206us  69.214us  piston_crypt_super
+ 81.57%  2.65991s    120000  22.165us  2.0600us  1.0794ms  cudaMemcpyAsync

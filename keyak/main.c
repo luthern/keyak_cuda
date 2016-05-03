@@ -68,7 +68,7 @@ int main(int argc, char * argv[])
         exit(1);
     }
 
-    
+
     ERR_load_crypto_strings();
 
     int opt;
@@ -93,8 +93,8 @@ int main(int argc, char * argv[])
     }
 
     engine_precompute();
-    Fleet * frecv = fleet_new(10,10);
-    Fleet * fsend = fleet_new(10,10);
+    Fleet * frecv = fleet_new(50,50);
+    Fleet * fsend = fleet_new(50,50);
 
     keyak_init(&sendr, fsend);
     keyak_init(&recvr, frecv);
@@ -144,7 +144,7 @@ int main(int argc, char * argv[])
 
 
 
-    for (j=1; j < 11; j++)
+    for (j=10; j < 11; j++)
     {
 
         memset(&t, 0, sizeof(struct timer));
@@ -153,12 +153,12 @@ int main(int argc, char * argv[])
         printf("STREAMS: %d\n", j);
         for (i = 0; i < iterations; i++)
         {
-            timer_start(&tinit,"keyak_initx2");
+            /*timer_start(&tinit,"keyak_initx2");*/
 
             keyak_restart(&sendr);
             keyak_restart(&recvr);
 
-            timer_accum(&tinit);
+            /*timer_accum(&tinit);*/
 
             for(k=0; k< j; k++)
             {
@@ -173,7 +173,7 @@ int main(int argc, char * argv[])
         }
 
         timer_end(&t);
-        timer_end(&tinit);
+        /*timer_end(&tinit);*/
         engine_sync();
 
 

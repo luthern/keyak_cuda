@@ -129,6 +129,12 @@ void engine_init(Engine * e)
     HANDLE_ERROR(cudaMemset(e->p_offsets,0,KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMemset(e->p_tmp,0,KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
 
+    // for lazy allocator
+    HANDLE_ERROR(cudaMemset(e->p_in,0,PISTON_RS * KEYAK_NUM_PISTONS ));
+    HANDLE_ERROR(cudaMemset(e->p_out,0,PISTON_RS * KEYAK_NUM_PISTONS * KEYAK_GPU_BUF_SLOTS ));
+    HANDLE_ERROR(cudaMemset(e->p_tag,0, KEYAK_TAG_SIZE/8));
+    HANDLE_ERROR(cudaMemset(e->p_coalesced,0,KEYAK_NUM_PISTONS * KEYAK_STATE_SIZE * KEYAK_GPU_BUF_SLOTS));
+
 
     HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_cprime, OFFSETS_CPRIME));
     HANDLE_ERROR(cudaGetSymbolAddress((void**)&e->p_offsets_zero, OFFSETS_ZERO));
@@ -304,9 +310,6 @@ void engine_crypt(Engine * e, uint8_t * I, uint8_t * O, uint8_t unwrapFlag, uint
 {
 
     assert(e->phase == EngineFresh);
-
-    // TODO is PISTON_RS i.e. 1-1 the best ratio here?
-    // ^ yes for a particular stream but idk for biggest data streams
 
     piston_crypt_super<<<KEYAK_NUM_PISTONS,KEYAK_STATE_SIZE, 0, e->stream>>>
         (I,O,e->p_state,rs_amt, unwrapFlag, A,rs_amt,cryptingFlag, doSpark,
