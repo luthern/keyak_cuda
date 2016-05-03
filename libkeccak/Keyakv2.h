@@ -177,7 +177,7 @@ int PrefixKeyak_WrapPartial( PrefixKeyak_Instance *instance, const unsigned char
     int prefix##Keyak_Initialize(prefix##Keyak_Instance *instance, const unsigned char *key, unsigned int keySizeInBytes, const unsigned char *nonce, unsigned int nonceSizeInBytes, int tagFlag, unsigned char * tag, int unwrapFlag, int forgetFlag); \
     int prefix##Keyak_Wrap(prefix##Keyak_Instance *instance, const unsigned char *input, unsigned char *output, size_t dataSizeInBytes, const unsigned char * AD, size_t ADlen, unsigned char * tag, int unwrapFlag, int forgetFlag ); \
     int prefix##Keyak_WrapPartial(prefix##Keyak_Instance *instance, const unsigned char *input, unsigned char *output, size_t dataSizeInBytes, const unsigned char * AD, size_t ADlen, unsigned char * tag, int unwrapFlag, int forgetFlag, int lastFlags, size_t *processedIlen, size_t *processedAlen);
-
+/*
 #ifndef KeccakP800_excluded
     #include "KeccakP-800-SnP.h"
     KCP_DeclareKeyakStructure(River, KeyakWidth800, KeccakP800_stateAlignment)
@@ -201,11 +201,17 @@ int PrefixKeyak_WrapPartial( PrefixKeyak_Instance *instance, const unsigned char
     KCP_DeclareKeyakStructure(Ocean, KeyakWidth1600times4, KeccakP1600times4_statesAlignment)
     KCP_DeclareKeyakFunctions(Ocean)
 #endif
-
+*/
 #ifndef KeccakP1600timesN_excluded
     #include "KeccakP-1600-times8-SnP.h"
     KCP_DeclareKeyakStructure(Lunar, KeyakWidth1600times8, KeccakP1600times8_statesAlignment)
     KCP_DeclareKeyakFunctions(Lunar)
 #endif
+
+
+int runKeyak(unsigned char * key, unsigned int keylen, unsigned char * nonce,
+    unsigned int noncelen, unsigned char * input, unsigned int ptlen,
+    unsigned char* metadata, unsigned int mlen);
+
 
 #endif

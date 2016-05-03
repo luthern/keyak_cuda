@@ -132,20 +132,21 @@ int main(int argc, char* argv[])
         {
             for(k=0; k< j; k++)
             {
+                /*
                 LunarKeyak_Instance *instance;
                 unsigned char * tag;
                 unsigned char * output;
 
                 LunarKeyak_Initialize(instance, key, keylen, nonce, noncelen, 0, tag, 0, 0);
                 LunarKeyak_Wrap(instance, pt, output, ptlen, metadata, mlen, tag, 0, 0);
+                */
+                runKeyak(key, keylen, nonce,
+                        noncelen, pt, ptlen,
+                        metadata, mlen);
             }
         }
         timer_end(&t);
     }
-
-
-
-//testOneKeyak( const unsigned char * key, unsigned int keySizeInBytes, const unsigned char * nonce, unsigned int nonceSizeInBytes, const unsigned char * AD, size_t ADlen, const unsigned char * input, size_t dataSizeInBytes)
 
     return 0;
 }

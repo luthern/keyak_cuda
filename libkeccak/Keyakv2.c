@@ -19,6 +19,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
 #include "Keyakv2.h"
 
+/*
 #ifndef KeccakP800_excluded
     #include "KeccakP-800-SnP.h"
 
@@ -58,7 +59,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
     #undef prefix
     #undef prefixMotorist
 #endif
-
+*/
 #ifndef KeccakP1600timesN_excluded
     #include "KeccakP-1600-times8-SnP.h"
 
@@ -68,4 +69,19 @@ http://creativecommons.org/publicdomain/zero/1.0/
     #undef prefix
     #undef prefixMotorist
 #endif
+
+
+int runKeyak(unsigned char * key, unsigned int keylen, unsigned char * nonce,
+    unsigned int noncelen, unsigned char * input, unsigned int ptlen,
+    unsigned char* metadata, unsigned int mlen)
+{
+    LunarKeyak_Instance *instance;
+    unsigned char * tag;
+    unsigned char * output;
+
+    LunarKeyak_Initialize(instance, key, keylen, nonce, noncelen, 0, tag, 0, 0);
+    LunarKeyak_Wrap(instance, input, output, ptlen, metadata, mlen, tag, 0, 0);
+}
+
+
 
