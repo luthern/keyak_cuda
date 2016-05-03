@@ -60,28 +60,32 @@ http://creativecommons.org/publicdomain/zero/1.0/
     #undef prefixMotorist
 #endif
 */
-#ifndef KeccakP1600timesN_excluded
     #include "KeccakP-1600-times8-SnP.h"
 
     #define prefix                      Lunar
     #define prefixMotorist              KeyakWidth1600times8
         #include "Keyakv2.inc"
-    #undef prefix
-    #undef prefixMotorist
-#endif
 
+#define Keyak_Instance                  JOIN(prefix, Keyak_Instance)
+#define Keyak_Initialize                JOIN(prefix, Keyak_Initialize)
+#define Keyak_Wrap                      JOIN(prefix, Keyak_Wrap)
 
 int runKeyak(unsigned char * key, unsigned int keylen, unsigned char * nonce,
     unsigned int noncelen, unsigned char * input, unsigned int ptlen,
     unsigned char* metadata, unsigned int mlen)
 {
-    LunarKeyak_Instance *instance;
-    unsigned char * tag;
-    unsigned char * output;
+    Keyak_Instance instance;
+    Keyak_Initialize(&instance, 0, 0, 0, 0, 0, 0, 0, 0);
+    
+    unsigned char tag[16];
+    unsigned char output[(1600/8 - (256/8))*8*2];
 
-    LunarKeyak_Initialize(instance, key, keylen, nonce, noncelen, 0, tag, 0, 0);
-    LunarKeyak_Wrap(instance, input, output, ptlen, metadata, mlen, tag, 0, 0);
+    Keyak_Initialize(&instance, key, keylen, nonce, noncelen, 0, tag, 0, 0);
+    Keyak_Wrap(&instance, input, output, ptlen, metadata, mlen, tag, 0, 0);
+    return 0;
 }
 
 
 
+    #undef prefix
+    #undef prefixMotorist

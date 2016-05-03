@@ -53,11 +53,11 @@ int main(int argc, char* argv[])
     //return process(argc, argv);
 
     unsigned char * key, * nonce = NULL, * key_hex, * nonce_hex = NULL;
-    unsigned char * pt, * ot, * metadata = NULL, * metadata_hex = NULL;
-    BIGNUM * key_bn = NULL, * nonce_bn = NULL;
+    unsigned char * pt, * metadata = NULL, * metadata_hex = NULL;
+    //BIGNUM * key_bn = NULL, * nonce_bn = NULL;
     char * output, * inputname;
     FILE * outputf, * inputf;
-    unsigned int ptlen, keylen, noncelen, mlen, readlen;
+    unsigned int ptlen, keylen, noncelen, mlen;
     int iterations = 1;
 
     if (argc < 4 || argc > 10)
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
     fseek(inputf, 0L, SEEK_SET);
 
     pt = (unsigned char*)malloc(amt);
-    ot = (unsigned char*)malloc(amt);
+    //ot = (unsigned char*)malloc(amt);
     ptlen = fread(pt, 1, amt, inputf);
     
     struct timer t;
