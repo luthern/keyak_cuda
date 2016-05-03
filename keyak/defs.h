@@ -38,6 +38,6 @@
 
 
 #define KEYAK_BUFFER_SIZE       5000
-#define KEYAK_GPU_BUF_SLOTS     64
+#define KEYAK_GPU_BUF_SLOTS     BUF_SLOTS
 
 #endif

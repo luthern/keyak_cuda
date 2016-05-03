@@ -152,17 +152,23 @@ int motorist_wrap(Motorist * m, uint8_t unwrapFlag)
     }
 
 
+
     if ((pkt->input_bytes_copied < pkt->input_size) || block)
     {
             /*block = coalesce_gpu(&m->engine, pkt);*/
         uint8_t i = 0;
         out_offset = 0;
-
+    
         int ra_amt = total_amt(pkt->ra_sizes);
         int rs_amt = total_amt(pkt->rs_sizes);
 
+
+        uint8_t do_spark = ((pkt->input_bytes_processed + rs_amt) < pkt->input_size 
+                || (pkt->metadata_bytes_processed + ra_amt) < pkt->metadata_size);
+
+
         engine_crypt(&m->engine, block, m->engine.p_out, unwrapFlag, rs_amt,
-                block, 0l, ra_amt, 1,
+                block, do_spark, ra_amt, 1,
                 pkt->input_size, pkt->input_bytes_processed, pkt->metadata_size, pkt->metadata_bytes_processed);
 
         pkt->input_bytes_processed += rs_amt;

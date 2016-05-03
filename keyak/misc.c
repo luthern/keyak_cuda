@@ -45,7 +45,7 @@ void timer_end(struct timer * t)
                 ((double)t->tstart.tv_sec + 1.0e-9 * (double)t->tstart.tv_nsec));
     }
     t->accum = 0;
-    printf("%s time: %.5f s\n", t->msg, t->total);
+    fprintf(stderr,"%s time: %.5f s\n", t->msg, t->total);
 #endif
 }
 
