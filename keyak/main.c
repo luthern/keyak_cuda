@@ -44,10 +44,11 @@ int main(int argc, char * argv[])
     FILE * outputf, * inputf;
     int ptlen, keylen, noncelen, mlen, readlen;
     int iterations = 1;
+    int num_streams = 1;
 
-    if (argc < 4 || argc > 10)
+    if (argc < 4 || argc > 12)
     {
-        fprintf(stderr, "usage: %s <key-hex> <input-file> <output-file> [-n <nonce-hex>] [-m <metadata-hex>] [-i <iterations>]\n", argv[0]);
+        fprintf(stderr, "usage: %s <key-hex> <input-file> <output-file> [-n <nonce-hex>] [-m <metadata-hex>] [-i <iterations>] [-s <num_streams>]\n", argv[0]);
         exit(1);
     }
 
@@ -72,7 +73,7 @@ int main(int argc, char * argv[])
     ERR_load_crypto_strings();
 
     int opt;
-    while ((opt = getopt (argc, argv, "n:m:i:")) != -1)
+    while ((opt = getopt (argc, argv, "n:m:i:s:")) != -1)
     {
         switch (opt)
         {
@@ -85,6 +86,9 @@ int main(int argc, char * argv[])
             case 'i':
                 iterations = atoi(optarg);
                 break;
+            case 's':
+                num_streams = atoi(optarg);
+                break;
             default:
                 fprintf(stderr,"unrecognized argument -%c", (char)opt);
                 exit(1);
@@ -93,8 +97,8 @@ int main(int argc, char * argv[])
     }
 
     engine_precompute();
-    Fleet * frecv = fleet_new(50,50);
-    Fleet * fsend = fleet_new(50,50);
+    Fleet * frecv = fleet_new(num_streams,num_streams);
+    Fleet * fsend = fleet_new(num_streams,num_streams);
 
     keyak_init(&sendr, fsend);
     keyak_init(&recvr, frecv);
@@ -144,7 +148,7 @@ int main(int argc, char * argv[])
 
 
 
-    for (j=50; j < 51; j+=1)
+    for (j=num_streams; j < num_streams+1; j+=1)
     {
 
         memset(&t, 0, sizeof(struct timer));
@@ -174,9 +178,9 @@ int main(int argc, char * argv[])
 
         engine_sync();
         float time = timer_end(&t);
-
-        /*printf("Time: %.5f s per data stream\n", time/j);*/
-        printf("Time: %.5f s per data stream\n", time);
+        
+        /*printf("bytes, streams, blocks, time/stream, Gb/s, time total, iterations\n");*/
+        fprintf(stderr,"%d\t%d\t%d\t%.5f\t%.5f\t%.5f\t%d\n", ptlen, j, KEYAK_GPU_BUF_SLOTS, time/j, ((float)((uint64_t)ptlen * j *8 * iterations))/(time * (1<<30)),time, iterations );
         /*timer_end(&tinit);*/
 
 

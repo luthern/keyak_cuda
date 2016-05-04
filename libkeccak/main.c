@@ -123,10 +123,10 @@ int main(int argc, char* argv[])
     struct timer t;
     int i, j, k;
 
-    for (j=10; j < 11; j++)
+    for (j=1; j < 2; j++)
     {
         memset(&t, 0, sizeof(struct timer));
-        timer_start(&t, "10000 sessions");
+        timer_start(&t, "20000 sessions");
 
         for (i = 0; i < iterations; i++)
         {

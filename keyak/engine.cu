@@ -120,13 +120,11 @@ void engine_init(Engine * e)
     HANDLE_ERROR(cudaMalloc(&e->p_state, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&e->p_tmp, KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMalloc(&e->p_tag, KEYAK_TAG_SIZE/8));
-    HANDLE_ERROR(cudaMalloc(&e->p_offsets, KEYAK_NUM_PISTONS ));
     
     //e->p_coalesced = ENGINE_INPUT;
     HANDLE_ERROR(cudaMalloc(&e->p_coalesced, KEYAK_NUM_PISTONS * KEYAK_STATE_SIZE * KEYAK_GPU_BUF_SLOTS));
 
     HANDLE_ERROR(cudaMemset(e->p_state,0, KEYAK_STATE_SIZE * KEYAK_NUM_PISTONS ));
-    HANDLE_ERROR(cudaMemset(e->p_offsets,0,KEYAK_NUM_PISTONS ));
     HANDLE_ERROR(cudaMemset(e->p_tmp,0,KEYAK_BUFFER_SIZE * KEYAK_NUM_PISTONS ));
 
     // for lazy allocator
@@ -149,7 +147,6 @@ void engine_destroy(Engine * e)
     cudaStreamDestroy(e->stream);
     cudaFree(e->p_in);
     cudaFree(e->p_out);
-    cudaFree(e->p_offsets);
     cudaFree(e->p_tmp);
     cudaFree(e->p_state);
     cudaFree(e->p_coalesced);
