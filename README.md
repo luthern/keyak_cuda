@@ -13,6 +13,9 @@ Should work on any NVidia architecture.  Tested at home and on Hokiespeed.
 
 ```bash
 cd keyak/
+export BUF_SLOTS=74
+# only if CUDA_INC is not defined
+export CUDA_INC=.
 make -j5
 ```
 
