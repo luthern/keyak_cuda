@@ -47,9 +47,11 @@ __device__ void piston_spark_dev(uint8_t * state, uint8_t eom, uint8_t * offsets
     }
 
     PERMUTE((uint64_t*)(state + stateoffset));
-    if (amt)
+
+    int dsti = piston * amt + threadIdx.x;
+    if (dsti < amt)
     {
-        dst[piston * amt + threadIdx.x] = state[piston * KEYAK_STATE_SIZE + threadIdx.x];
+        dst[dsti] = state[piston * KEYAK_STATE_SIZE + threadIdx.x];
     }
 }
 
@@ -197,6 +199,7 @@ __device__ void piston_crypt(   uint8_t * in, uint8_t * out, uint8_t * state,
     if (consuming < amt)
     {
         out[consuming] = state[i] ^ in[consuming];
+
         state[i] = unwrapFlag ? in[consuming] : in[consuming] ^ state[i];
 
         // if its last byte for piston ...
@@ -237,7 +240,7 @@ __global__ void piston_crypt_super(   uint8_t * block, uint8_t * out, uint8_t * 
     {
 
         // CRYPT + INJECT //
-        int out_offset;
+        int out_offset = 0;
 
         int i;
         for (i=0; i < rs_amt / (PISTON_RS * KEYAK_NUM_PISTONS); i++)

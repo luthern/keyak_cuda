@@ -11,9 +11,9 @@ void motorist_init(Motorist * m)
 {
     uint8_t i;
 
+    memset(m, 0, sizeof(Motorist));
     m->phase = MotoristReady;
 
-    memset(&m->pkt, 0, sizeof(Packet));
 
     engine_init(&m->engine);
 }

@@ -4,7 +4,7 @@
 slots=1
 
 python -c "print 'A'*4000000" > input.txt
-export CUDA_INC=.
+#export CUDA_INC=.
 
 for i in `seq 256` ; do
 

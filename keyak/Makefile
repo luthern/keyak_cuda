@@ -1,13 +1,14 @@
-src = $(wildcard *.c)
-obj = $(src:.c=.o) engine.o utils.o
+src = $(wildcard *.cpp)
+obj = $(src:.cpp=.o) engine.o utils.o
 
 name=keyak
 
-CFLAGS= -I/usr/local/cuda-7.5/include/ -I $(CUDA_INC) -O3 -Werror -DBUF_SLOTS=$(BUF_SLOTS)
-CGFLAGS= -I/usr/local/cuda-7.5/include/ -I $(CUDA_INC) -DBUF_SLOTS=$(BUF_SLOTS)
+CPPFLAGS= -I/usr/local/cuda-7.5/include/ -I $(CUDA_INC) -O3 -DBUF_SLOTS=$(BUF_SLOTS)
+CGFLAGS= -I/usr/local/cuda-7.5/include/ -I $(CUDA_INC) -DBUF_SLOTS=$(BUF_SLOTS) -O3
 LDFLAGS= -lcudart -lcudart -lcrypto
 
-CC=g++
+CC=nvcc
+CXX=nvcc
 CCG=nvcc
 
 $(name): $(obj)
